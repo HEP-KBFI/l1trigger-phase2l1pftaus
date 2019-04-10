@@ -1,0 +1,8 @@
+<library file="*.cc" name="L1TriggerTallinnL1PFTausPlugins">
+ <use   name="L1Trigger/TallinnL1PFTaus"/>
+ <use   name="hepmc"/>
+ <use   name="root"/>
+ <use   name="boost"/>
+ <flags   EDM_PLUGIN="1"/>
+</library>
+
