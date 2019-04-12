@@ -45,41 +45,15 @@
 #include "Geometry/HcalTowerAlgo/interface/HcalTrigTowerGeometry.h"
 #include "Geometry/HcalTowerAlgo/interface/HcalGeometry.h"
 
-//#include "DataFormats/L1Trigger/interface/L1PFTau.h"
 #include "DataFormats/TallinnL1PFTaus/interface/TallinnL1PFTau.h"
 #include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidate.h"
-#include "L1Trigger/TallinnL1PFTaus/interface/TallinnTauMaker.h"
+#include "L1Trigger/TallinnL1PFTaus/interface/TallinnTauCluster.h"
 
 using namespace l1t;
 
 //#define tracker_eta 3.5
 //#define tau_size_eta 0.7
 //#define tau_size_phi 0.7
-
-typedef struct{
-  float three_prong_seed;
-  float three_prong_delta_r;
-  float three_prong_max_delta_Z;
-  float isolation_delta_r;
-  float one_prong_seed;
-  float dummy;
-  float input_EoH_cut;
-  float max_neighbor_strip_dist;
-  float min_strip;
-  float eg_strip_merge;
-} algo_config_t;
-
-
-typedef struct
-{
-  float et = 0;
-  float eta = 0;
-  float phi = 0;
-} strip_t;
-
-
-
-typedef TallinnL1PFTau pftau_t;
 
 using std::vector;
 using namespace l1t;
@@ -93,10 +67,10 @@ class TallinnL1PFTauProducer : public edm::EDProducer {
    private:
   //virtual void produce(edm::Event&, const edm::EventSetup&) override;
 
-  tauMakerCollection tauCandidates;
+  TallinnTauClusterCollection tauCandidates;
   
-  void createTaus(tauMakerCollection &inputCollection);
-  void tau_cand_sort(tauMakerCollection tauCandidates, std::unique_ptr<TallinnL1PFTauCollection> &newTallinnL1PFTauCollection, unsigned int nCands);
+  void createTau(TallinnTauClusterCollection &inputCollection, l1t::PFCandidate tauSeed);
+  void tau_cand_sort(TallinnTauClusterCollection tauCandidates, std::unique_ptr<TallinnL1PFTauCollection> &newTallinnL1PFTauCollection, unsigned int nCands);
 
   /// ///////////////// ///
   /// MANDATORY METHODS ///
@@ -106,20 +80,10 @@ class TallinnL1PFTauProducer : public edm::EDProducer {
   /// ///////////////// ///
 
   bool debug;
-  double min_pi0pt_;
-  int input_EoH_cut_;
-  int input_HoE_cut_;
-  int input_min_n_stubs_;
-  int input_max_chi2_; 
-  float three_prong_delta_r_;
-  float three_prong_max_delta_Z_;
-  float isolation_delta_r_;
-  edm::InputTag L1TrackInputTag;
-  edm::EDGetTokenT< vector<l1t::PFCandidate> > L1ClustersToken_;
-  edm::EDGetTokenT< std::vector< TTTrack< Ref_Phase2TrackerDigi_ > > > ttTrackToken_;
+  double deltaR_;
+  double min_tauSeedPt_;
+  double max_tauSeedEta_;
   edm::EDGetTokenT< vector<l1t::PFCandidate> > L1PFToken_;
-  edm::EDGetTokenT< vector<l1t::PFCandidate> > L1NeutralToken_;
-
 
 };
 

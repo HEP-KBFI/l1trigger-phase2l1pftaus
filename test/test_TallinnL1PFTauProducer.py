@@ -25,7 +25,7 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load('L1Trigger.TrackFindingTracklet.L1TrackletTracks_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(40)
+    input = cms.untracked.int32(5)
 )
 
 # Input source
@@ -93,7 +93,7 @@ process.l1pf = cms.Path(process.pfTracksFromL1Tracks+process.l1ParticleFlow)
 process.load("L1Trigger.TallinnL1PFTaus.TallinnL1PFTauProducer_cff")
 process.TallinnL1PFTauProducer.debug = cms.untracked.bool(True)
 process.TallinnL1PFTauProducer.L1PFObjects = cms.InputTag("l1pfCandidates","PF")
-process.TallinnL1PFTauProducer.L1Neutrals = cms.InputTag("l1pfCandidates")
+#process.TallinnL1PFTauProducer.L1Neutrals = cms.InputTag("l1pfCandidates")
 process.L1PFTaus = cms.Path(process.TallinnL1PFTauProducer)
 
 

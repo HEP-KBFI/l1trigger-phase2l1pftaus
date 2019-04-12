@@ -16,9 +16,10 @@
 
 TallinnL1PFTauProducer::TallinnL1PFTauProducer(const edm::ParameterSet& cfg) :
   debug(                cfg.getUntrackedParameter<bool>("debug", false)),
-  min_pi0pt_(           cfg.getParameter<double>("min_pi0pt")),
-  L1PFToken_(           consumes< vector<l1t::PFCandidate> >(cfg.getParameter<edm::InputTag>("L1PFObjects"))),
-  L1NeutralToken_(      consumes< vector<l1t::PFCandidate> >(cfg.getParameter<edm::InputTag>("L1Neutrals")) )
+  deltaR_(           cfg.getParameter<double>("deltaR")),
+  min_tauSeedPt_(       cfg.getParameter<double>("min_tauSeedPt")),
+  max_tauSeedEta_(      cfg.getParameter<double>("max_tauSeedEta")),
+  L1PFToken_(           consumes< vector<l1t::PFCandidate> >(cfg.getParameter<edm::InputTag>("L1PFObjects")))
 {
   produces< TallinnL1PFTauCollection >( "L1PFTaus" ).setBranchAlias("L1PFTaus");
 }
@@ -29,9 +30,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& iEvent, const edm::EventSetup& 
 
   edm::Handle<  l1t::PFCandidateCollection > l1PFCandidates;
   iEvent.getByToken( L1PFToken_, l1PFCandidates);
-  l1t::PFCandidateCollection pfChargedHadrons;
-  l1t::PFCandidateCollection pfEGammas;
-  l1t::PFCandidateCollection pfNeutrals;
+
   l1t::PFCandidateCollection l1PFCandidates_sort;
 
   for(auto l1PFCand : *l1PFCandidates)
@@ -39,80 +38,54 @@ void TallinnL1PFTauProducer::produce(edm::Event& iEvent, const edm::EventSetup& 
 
   std::sort(l1PFCandidates_sort.begin(), l1PFCandidates_sort.end(), [](l1t::PFCandidate i,l1t::PFCandidate j){return(i.pt() > j.pt());});   
 
-  // get all PF Charged Hadrons
+
+  // get all seed to make tau cluster
+  tauCandidates.clear();
   for(auto l1PFCand : l1PFCandidates_sort){
-    // this saves some low pt 3 prong taus, but should be optimized with respect to 1 prong pi0
-    if(l1PFCand.id() == l1t::PFCandidate::ChargedHadron || (l1PFCand.pt()<5 && l1PFCand.id() == l1t::PFCandidate::Electron)){
-      pfChargedHadrons.push_back(l1PFCand);
-      continue;
-    }
-    // get all PF EM candidates
-    if((l1PFCand.id() == l1t::PFCandidate::Electron) || (l1PFCand.id() == l1t::PFCandidate::Photon)){
-      pfEGammas.push_back(l1PFCand);
+    if(l1PFCand.charge()!=0 && l1PFCand.pt()>min_tauSeedPt_ && fabs(l1PFCand.eta())<max_tauSeedEta_){
+      std::cout<<"Seed Pt "<<l1PFCand.pt()<<" Seed Eta "<<l1PFCand.eta()<<" Seed Charge "<<l1PFCand.charge()<<std::endl;
+      createTau(tauCandidates, l1PFCand);
     }
   }
-  
-  // create all Tau Candidates based on detector region
-  // 12 in phi x 10 taus 
-  // nTaus in phi, nTaus in Eta
-  tauCandidates.clear();
-  createTaus(tauCandidates);
-  
-  // loop through PF Candidates and add PF Cands to each Tau
-  for(auto pfChargedHadron : pfChargedHadrons){
+  // loop through PF Candidates and add PF Cands to each Tau 
+  for(auto l1PFCand : l1PFCandidates_sort){
     for(auto &tauCandidate : tauCandidates){
-      if(tauCandidate.addPFChargedHadron(pfChargedHadron)){
-	break;
+      if(tauCandidate.tauSeed==l1PFCand)
+	continue;
+      if(fabs(l1PFCand.eta()-tauCandidate.tauSeed.eta())+fabs(l1PFCand.phi()-tauCandidate.tauSeed.phi()) < deltaR_){
+	tauCandidate.addPFCandidate(l1PFCand);
+	std::cout<<"in cluster PFCand Pt "<<l1PFCand.pt()<<" PFCand Eta "<<l1PFCand.eta()<<std::endl;
       }
     }
   }
-  
-  for(auto pfEGamma : pfEGammas){
-    for(auto &tauCandidate : tauCandidates){
-      if(tauCandidate.addEG(pfEGamma))
-	continue;
-    }
-  }
-  
-     // Run Tau Algo over all Taus. 
+  // Run Tau Algo over all Taus. 
   for(auto &tauCandidate : tauCandidates){
     tauCandidate.process();
   }
   
   // Sort by PT
-  unsigned int nCands = 12;
+  unsigned int nCands = tauCandidates.size();
+
   tau_cand_sort(tauCandidates, newTallinnL1PFTauCollection, nCands);
 
   for(unsigned i = 0; i < newTallinnL1PFTauCollection->size(); i++)
   {
-    std::cout<< i <<" Tau Pt "<<newTallinnL1PFTauCollection->at(i).pt()<<std::endl;
+    std::cout<< i <<" Tau Pt "<<newTallinnL1PFTauCollection->at(i).pt()<<" Tau type "<< newTallinnL1PFTauCollection->at(i).tauType()<<std::endl;
   }
 
   iEvent.put( std::move(newTallinnL1PFTauCollection) , "L1PFTaus" );
 }
   
-// create taus based on grid structure
-void TallinnL1PFTauProducer::createTaus(tauMakerCollection &inputCollection){
-  inputCollection.clear();
-  float left_edge_center_eta = (-1)*tracker_eta + tau_size_eta/2 ;
- 
-  //std::cout<<"min_pi0pt "<<min_pi0pt_<<std::endl;
-  for(float iTau_eta = left_edge_center_eta; iTau_eta < tracker_eta; iTau_eta = iTau_eta + tau_size_eta ){
-    for(float iTau_phi = -3.14159; iTau_phi < 3.14159; iTau_phi = iTau_phi + tau_size_phi ){
-      TallinnTauMaker tempTau; 
-      tempTau.setMinPi0Pt(min_pi0pt_);
-      tempTau.l1PFTau.setHWEta(iTau_eta);
-      tempTau.l1PFTau.setHWPhi(iTau_phi);
-      tempTau.ClearSeedHadron();
-      inputCollection.push_back(tempTau);
-    }
-  }
 
+void TallinnL1PFTauProducer::createTau(TallinnTauClusterCollection &inputCollection, l1t::PFCandidate Seed){
+  TallinnTauCluster tempTau;
+  tempTau.tauSeed = Seed;
+  inputCollection.push_back(tempTau);
 }
 
 
-void TallinnL1PFTauProducer::tau_cand_sort(tauMakerCollection tauCandidates, std::unique_ptr<TallinnL1PFTauCollection> &newTallinnL1PFTauCollection, unsigned int nCands){
-  std::sort(tauCandidates.begin(), tauCandidates.end(), [](TallinnTauMaker i,TallinnTauMaker j){return(i.l1PFTau.pt() > j.l1PFTau.pt());});   
+void TallinnL1PFTauProducer::tau_cand_sort(TallinnTauClusterCollection tauCandidates, std::unique_ptr<TallinnL1PFTauCollection> &newTallinnL1PFTauCollection, unsigned int nCands){
+  std::sort(tauCandidates.begin(), tauCandidates.end(), [](TallinnTauCluster i,TallinnTauCluster j){return(i.l1PFTau.pt() > j.l1PFTau.pt());});   
   
   for(unsigned int i = 0; i < nCands && i < tauCandidates.size(); i++){
     newTallinnL1PFTauCollection->push_back(tauCandidates.at(i).l1PFTau);
