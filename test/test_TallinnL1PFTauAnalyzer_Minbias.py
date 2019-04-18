@@ -5,10 +5,9 @@
 # with command line options: step2 --python_filename=rerun_step2_L1_onMCL1_FEVTHLTDEBUG.py --no_exec -s L1 --datatier GEN-SIM-DIGI-RAW -n 1 --era Phase2_timing --eventcontent FEVTDEBUGHLT --filein file:/afs/cern.ch/user/r/rekovic/release/CMSSW_9_3_2/src/step2_DIGI_PU200_10ev.root --conditions 93X_upgrade2023_realistic_v2 --beamspot HLLHC14TeV --geometry Extended2023D17 --fileout file:step2_ZEE_PU200_1ev_rerun-L1-L1Ntuple.root --customise=L1Trigger/L1TNtuples/customiseL1Ntuple.L1NtupleEMU
 import FWCore.ParameterSet.Config as cms
 
+from Configuration.ProcessModifiers.convertHGCalDigisSim_cff import convertHGCalDigisSim
 from Configuration.StandardSequences.Eras import eras
 
-#process = cms.Process('L1',eras.Phase2_trigger)
-from Configuration.ProcessModifiers.convertHGCalDigisSim_cff import convertHGCalDigisSim
 process = cms.Process('REPR',eras.Phase2_trigger,convertHGCalDigisSim)
 
 # import of standard configurations
@@ -25,17 +24,20 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load('L1Trigger.TrackFindingTracklet.L1TrackletTracks_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(5)
+    #input = cms.untracked.int32(-1)
+    input = cms.untracked.int32(100)
 )
 
 # Input source
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-        'file:/hdfs/local/sbhowmik/Sample/VBFHToTauTau_M125_14TeV_powheg_pythia8_correctedGridpack/PhaseIIMTDTDRAutumn18MiniAOD-PU200_103X_upgrade2023_realistic_v2-v1/MINIAODSIM/556D067D-7601-BD4D-A168-88D0A67428DB.root', 
+        'file:/hdfs/local/sbhowmik/Sample/MinBias_TuneCP5_14TeV-pythia8/PhaseIIMTDTDRAutumn18MiniAOD-NoPU_103X_upgrade2023_realistic_v2-v1/MINIAODSIM/C8949E10-43E7-AE44-840E-E2235D8D8262.root',
         ),
     secondaryFileNames = cms.untracked.vstring(
-        'file:/hdfs/local/sbhowmik/Sample/VBFHToTauTau_M125_14TeV_powheg_pythia8_correctedGridpack/PhaseIIMTDTDRAutumn18MiniAOD-PU200_103X_upgrade2023_realistic_v2-v1/FEVT/B12B9398-9DBA-D442-855D-BFEBCE64D269.root',
-        'file:/hdfs/local/sbhowmik/Sample/VBFHToTauTau_M125_14TeV_powheg_pythia8_correctedGridpack/PhaseIIMTDTDRAutumn18MiniAOD-PU200_103X_upgrade2023_realistic_v2-v1/FEVT/5AB0C82F-3846-4D45-A27F-A356DEB6C5DE.root', 
+        'file:/hdfs/local/sbhowmik/Sample/MinBias_TuneCP5_14TeV-pythia8/PhaseIIMTDTDRAutumn18DR-NoPU_103X_upgrade2023_realistic_v2-v1/FEVT/B8A9F4F3-674C-FB44-A211-048658337652.root',
+        'file:/hdfs/local/sbhowmik/Sample/MinBias_TuneCP5_14TeV-pythia8/PhaseIIMTDTDRAutumn18DR-NoPU_103X_upgrade2023_realistic_v2-v1/FEVT/87E5448C-665C-C149-8B56-D98B91C3B028.root',
+        'file:/hdfs/local/sbhowmik/Sample/MinBias_TuneCP5_14TeV-pythia8/PhaseIIMTDTDRAutumn18DR-NoPU_103X_upgrade2023_realistic_v2-v1/FEVT/7F806CE0-ADC8-CD43-B3A4-BBDB90B0CD04.root',
+        'file:/hdfs/local/sbhowmik/Sample/MinBias_TuneCP5_14TeV-pythia8/PhaseIIMTDTDRAutumn18DR-NoPU_103X_upgrade2023_realistic_v2-v1/FEVT/30E8AB27-CD42-3249-A17D-B7C827F1FD11.root',
         ),
     inputCommands = cms.untracked.vstring("keep *", 
         "drop l1tHGCalTowerMapBXVector_hgcalTriggerPrimitiveDigiProducer_towerMap_HLT",
@@ -92,23 +94,17 @@ process.l1pf = cms.Path(process.pfTracksFromL1Tracks+process.l1ParticleFlow)
 
 process.load("L1Trigger.TallinnL1PFTaus.TallinnL1PFTauProducer_cff")
 process.TallinnL1PFTauProducer.debug = cms.untracked.bool(True)
-process.TallinnL1PFTauProducer.l1PFCandToken = cms.InputTag("l1pfCandidates","PF")
-process.L1PFTaus = cms.Path(process.TallinnL1PFTauProducer)
+process.TallinnL1PFTaus = cms.Path(process.TallinnL1PFTauProducer)
 
-process.out = cms.OutputModule(
-    "PoolOutputModule",
-    fileName = cms.untracked.string( 'NTuple_TallinnL1PFTauProducer.root' ),
-    outputCommands = cms.untracked.vstring(
-        #'keep recoGenJets_*_*_*',
-        'keep l1pfCandidates_*_*_*',
-        'keep TallinnL1PFTauProducer_*_*_*',
-        'keep TallinnL1PFTau_*_*_*'
-         )
-    )
-process.outpath = cms.EndPath(process.out)
+process.load("L1Trigger.TallinnL1PFTaus.TallinnL1PFTauAnalyzer_Minbias_cff")
+
+process.p = cms.Path(
+    process.AnalyzerSeq
+)
 
 # Schedule definition
-process.schedule = cms.Schedule(process.EcalEBtp_step,process.L1TrackTrigger_step,process.L1simulation_step,process.l1pf,process.L1PFTaus,process.outpath,process.endjob_step)
+process.schedule = cms.Schedule(process.EcalEBtp_step,process.L1TrackTrigger_step,process.L1simulation_step,process.l1pf,process.TallinnL1PFTaus,process.p,process.endjob_step)
+
 
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)
@@ -121,4 +117,4 @@ process = customiseEarlyDelete(process)
 #dump_file = open('dump.py','w')
 #dump_file.write(process.dumpPython())
 
-
+process.TFileService=cms.Service('TFileService',fileName=cms.string("NTuple_test_TallinnL1PFTauAnalyzer_Minbias.root"))

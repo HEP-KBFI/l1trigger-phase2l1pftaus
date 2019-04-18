@@ -1,5 +1,5 @@
-#ifndef TallinnL1PFTauProducer_H
-#define TallinnL1PFTauProducer_H
+#ifndef L1Trigger_TallinnL1PFTaus_TallinnL1PFTauProducer_h
+#define L1Trigger_TallinnL1PFTaus_TallinnL1PFTauProducer_h
 
 #include <iostream>
 #include <math.h>
@@ -47,13 +47,26 @@
 
 #include "DataFormats/TallinnL1PFTaus/interface/TallinnL1PFTau.h"
 #include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidate.h"
-#include "L1Trigger/TallinnL1PFTaus/interface/TallinnTauCluster.h"
+#include "L1Trigger/TallinnL1PFTaus/interface/TallinnL1PFTauBuilder.h"
 
-using namespace l1t;
+// New addedd
+#include "FWCore/Framework/interface/EDAnalyzer.h"
+#include <FWCore/Framework/interface/Frameworkfwd.h>
+#include <DataFormats/PatCandidates/interface/Muon.h>
+#include <DataFormats/PatCandidates/interface/Tau.h>
+#include "DataFormats/PatCandidates/interface/Jet.h"
+#include "FWCore/Common/interface/TriggerNames.h"
+#include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
+#include "DataFormats/L1Trigger/interface/Tau.h"
+#include "DataFormats/VertexReco/interface/Vertex.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include <DataFormats/Common/interface/View.h>
+#include "DataFormats/TrackReco/interface/Track.h"
+#include "DataFormats/TrackReco/interface/TrackFwd.h"
+#include "DataFormats/TrackReco/interface/TrackBase.h"
 
-//#define tracker_eta 3.5
-//#define tau_size_eta 0.7
-//#define tau_size_phi 0.7
 
 using std::vector;
 using namespace l1t;
@@ -65,13 +78,9 @@ class TallinnL1PFTauProducer : public edm::EDProducer {
   ~TallinnL1PFTauProducer();
 
    private:
-  //virtual void produce(edm::Event&, const edm::EventSetup&) override;
 
-  TallinnTauClusterCollection tauCandidates;
+  void cleanL1PFTaus(std::unique_ptr<TallinnL1PFTauCollection> &newTallinnL1PFTauCollectionUncleaned, std::unique_ptr<TallinnL1PFTauCollection> &newTallinnL1PFTauCollection);
   
-  void createTau(TallinnTauClusterCollection &inputCollection, l1t::PFCandidate tauSeed);
-  void tau_cand_sort(TallinnTauClusterCollection tauCandidates, std::unique_ptr<TallinnL1PFTauCollection> &newTallinnL1PFTauCollection, unsigned int nCands);
-
   /// ///////////////// ///
   /// MANDATORY METHODS ///
   virtual void beginRun( const edm::Run& run, const edm::EventSetup& iSetup );
@@ -79,11 +88,13 @@ class TallinnL1PFTauProducer : public edm::EDProducer {
   virtual void produce( edm::Event& iEvent, const edm::EventSetup& iSetup );
   /// ///////////////// ///
 
-  bool debug;
+  bool debug_;
   double deltaR_;
+  double dz_cut_;
   double min_tauSeedPt_;
   double max_tauSeedEta_;
-  edm::EDGetTokenT< vector<l1t::PFCandidate> > L1PFToken_;
+  edm::EDGetTokenT< vector<l1t::PFCandidate> >     l1PFCandToken_;
+  edm::EDGetTokenT<std::vector<reco::Vertex>>      vtxTagToken_;
 
 };
 
