@@ -5,20 +5,37 @@
 using namespace l1t;
 
 TallinnL1PFTauProducer::TallinnL1PFTauProducer(const edm::ParameterSet& cfg) 
-  : debug_(cfg.getUntrackedParameter<bool>("debug", false))
-  , deltaR_(cfg.getParameter<double>("deltaR"))
-  , dz_cut_(cfg.getParameter<double>("dz_cut"))
-  , min_tauSeedPt_(cfg.getParameter<double>("min_tauSeedPt"))
-  , max_tauSeedEta_(cfg.getParameter<double>("max_tauSeedEta"))
+  : tauBuilder_(cfg)
   , l1PFCandToken_(consumes<vector<l1t::PFCandidate>>(cfg.getParameter<edm::InputTag>("l1PFCandToken")))
   , vtxTagToken_(consumes<std::vector<reco::Vertex>>(cfg.getParameter<edm::InputTag>("vtxTagToken")))
+  , min_tauSeed_pt_(cfg.getParameter<double>("min_tauSeed_pt"))
+  , max_tauSeed_eta_(cfg.getParameter<double>("max_tauSeed_eta"))
+  , max_tauSeed_dz_(cfg.getParameter<double>("max_tauSeed_dz"))
+  , deltaR_cleaning_(cfg.getParameter<double>("deltaR_cleaning"))
+  , debug_(cfg.getUntrackedParameter<bool>("debug", false))
 {
-  deltaR2_ = deltaR_*deltaR_;
+  deltaR2_cleaning_ = deltaR_cleaning_*deltaR_cleaning_;
+
+  edm::ParameterSet cfg_signalQualityCuts = cfg.getParameter<edm::ParameterSet>("signalQualityCuts");
+  signalQualityCuts_ = readL1PFTauQualityCuts(cfg_signalQualityCuts);
+  edm::ParameterSet cfg_isolationQualityCuts = cfg.getParameter<edm::ParameterSet>("isolationQualityCuts");
+  isolationQualityCuts_ = readL1PFTauQualityCuts(cfg_isolationQualityCuts);
+
   produces<TallinnL1PFTauCollection>("L1PFTaus").setBranchAlias("L1PFTaus");
 }
 
 TallinnL1PFTauProducer::~TallinnL1PFTauProducer()
 {}
+
+namespace
+{
+  bool
+  isHigherPt(const l1t::PFCandidate& l1PFCand1,
+             const l1t::PFCandidate& l1PFCand2)
+  {
+    return l1PFCand1.pt() > l1PFCand2.pt();
+  }
+}
 
 void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
 {
@@ -29,43 +46,56 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
 
   edm::Handle<std::vector<reco::Vertex>> vertices;
   evt.getByToken(vtxTagToken_, vertices);
-  double primaryVertex_pz = ( vertices->size() > 0 ) ? vertices->at(0).z() : 0.;
+  const reco::Vertex* primaryVertex = ( vertices->size() > 0 ) ? &vertices->at(0) : nullptr;
 
+  // build collection of selected PFCandidates
   l1t::PFCandidateCollection l1PFCands_selected;
-  for ( auto l1PFCand : *l1PFCands ) 
+  for ( auto l1PFCand : *l1PFCands )
   {
-    bool isFromPrimaryVertex = false;
-    if ( l1PFCand.charge() != 0 && vertices->size() > 0 ) 
-    {
-      l1t::PFTrackRef l1PFTrack = l1PFCand.pfTrack();
-      double dz = std::fabs(l1PFTrack->vertex().z() - primaryVertex_pz);
-      if ( dz < dz_cut_ ) 
-      {
-	isFromPrimaryVertex = true;
-      }
-    } 
-    else 
-    {
-      isFromPrimaryVertex = true;
-    }
-    if ( isFromPrimaryVertex ) 
+    if ( isSelected(signalQualityCuts_,    l1PFCand, primaryVertex) || 
+	 isSelected(isolationQualityCuts_, l1PFCand, primaryVertex) ) 
     {
       l1PFCands_selected.push_back(l1PFCand);
     }
   }
-  std::sort(l1PFCands_selected.begin(), l1PFCands_selected.end(), [](l1t::PFCandidate i, l1t::PFCandidate j){return(i.pt() > j.pt());});  
 
-  TallinnL1PFTauCollection l1PFTauCollection_uncleaned;
+  // sort PFCandidate collection by decreasing pT
+  std::sort(l1PFCands_selected.begin(), l1PFCands_selected.end(), isHigherPt);
+
+  l1t::PFCandidateCollection tauSeeds;
   for ( auto l1PFCand : l1PFCands_selected ) 
   {
-    if ( l1PFCand.charge() != 0 && l1PFCand.pt() > min_tauSeedPt_ && fabs(l1PFCand.eta()) < max_tauSeedEta_ )
+    if ( l1PFCand.charge() != 0 && l1PFCand.pt() > min_tauSeed_pt_ && fabs(l1PFCand.eta()) < max_tauSeed_eta_ )
     {
-      TallinnL1PFTauBuilder l1PFTauBuilder;
-      l1PFTauBuilder.setL1PFTauSeed(l1PFCand);
-      l1PFTauBuilder.addL1PFCandidates(l1PFCands_selected);
-      l1PFTauBuilder.buildL1PFTau();
-      l1PFTauCollection_uncleaned.push_back(l1PFTauBuilder.getL1PFTau());
+      bool isFromPrimaryVertex = false;
+      if ( primaryVertex ) 
+      {
+        l1t::PFTrackRef l1PFTrack = l1PFCand.pfTrack();
+        double dz = std::fabs(l1PFTrack->vertex().z() - primaryVertex->z());
+        if ( dz < max_tauSeed_dz_ ) 
+        {
+	  isFromPrimaryVertex = true;
+        }
+      } 
+      else 
+      {
+        isFromPrimaryVertex = true;
+      }
+      if ( isFromPrimaryVertex ) 
+      {
+        tauSeeds.push_back(l1PFCand);
+      }
     }
+  }
+
+  TallinnL1PFTauCollection l1PFTauCollection_uncleaned;
+  for ( auto tauSeed : tauSeeds ) 
+  {
+    tauBuilder_.reset();
+    tauBuilder_.setL1PFTauSeed_and_Vertex(tauSeed, primaryVertex);
+    tauBuilder_.addL1PFCandidates(l1PFCands_selected);
+    tauBuilder_.buildL1PFTau();
+    l1PFTauCollection_uncleaned.push_back(tauBuilder_.getL1PFTau());
   }
 
   for ( auto l1PFTau : l1PFTauCollection_uncleaned )
@@ -75,7 +105,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
     {
       double deltaEta = l1PFTau.eta() - l1PFTau2.eta();
       double deltaPhi = l1PFTau.phi() - l1PFTau2.phi();
-      if ( (deltaEta*deltaEta + deltaPhi*deltaPhi) < deltaR2_ ) 
+      if ( (deltaEta*deltaEta + deltaPhi*deltaPhi) < deltaR2_cleaning_ ) 
       {
 	isOverlap = true;
       }      

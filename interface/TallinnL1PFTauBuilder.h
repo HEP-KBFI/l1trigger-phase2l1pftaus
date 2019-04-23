@@ -1,34 +1,26 @@
 #ifndef L1Trigger_TallinnL1PFTaus_TallinnL1PFTauBuilder_h
 #define L1Trigger_TallinnL1PFTaus_TallinnL1PFTauBuilder_h
 
-#include <iostream>
-#include <math.h>
-#include <vector>
-#include <list>
-#include <TLorentzVector.h>
-#include "DataFormats/TallinnL1PFTaus/interface/TallinnL1PFTau.h"
-#include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidate.h"
-#include "DataFormats/Math/interface/deltaPhi.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
-#include <unordered_map>
+#include "L1Trigger/TallinnL1PFTaus/interface/TallinnL1PFTauQualityCut.h"
+#include "DataFormats/TallinnL1PFTaus/interface/TallinnL1PFTau.h"
+#include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidate.h"
 
-class TallinnL1PFTauBuilder;
-
-typedef std::vector<TallinnL1PFTauBuilder> TallinnL1PFTauBuilderCollection;
+#include <vector>
 
 class TallinnL1PFTauBuilder
 {
  public:
-
-  TallinnL1PFTauBuilder();
+  TallinnL1PFTauBuilder(const edm::ParameterSet& cfg);
   ~TallinnL1PFTauBuilder();
   
-  void setL1PFTauSeed(const l1t::PFCandidate& l1PFCand_seed);
+  void reset();
+  void setL1PFTauSeed_and_Vertex(const l1t::PFCandidate& l1PFCand_seed, const reco::Vertex* primaryVertex);
   void addL1PFCandidates(const l1t::PFCandidateCollection& l1PFCands);
   void buildL1PFTau();
 
-  l1t::TallinnL1PFTau getL1PFTau() const { return l1PFTau_; }
+  TallinnL1PFTau getL1PFTau() const { return l1PFTau_; }
 
  private:
 
@@ -47,10 +39,16 @@ class TallinnL1PFTauBuilder
   double isolationConeSize_;
   double isolationConeSize2_;
 
+  std::vector<TallinnL1PFTauQualityCut> signalQualityCuts_;
+  std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_;
+
   l1t::PFCandidate l1PFTauSeed_;
   double l1PFTauSeed_eta_;
   double l1PFTauSeed_phi_;
-  l1t::TallinnL1PFTau l1PFTau_;
+  const reco::Vertex* primaryVertex_;
+  TallinnL1PFTau l1PFTau_;
+
+  reco::Particle::LorentzVector strip_p4_;
 
   l1t::PFCandidateCollection signalAllL1PFCandidates_;
   l1t::PFCandidateCollection signalChargedHadrons_;

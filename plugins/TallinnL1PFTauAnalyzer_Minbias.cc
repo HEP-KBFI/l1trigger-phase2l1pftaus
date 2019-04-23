@@ -121,7 +121,7 @@ private:
 
   // ----------member data ---------------------------
 
-  edm::EDGetTokenT<l1t::TallinnL1PFTauCollection>   l1PFTauToken_;
+  edm::EDGetTokenT<TallinnL1PFTauCollection>   l1PFTauToken_;
   edm::EDGetTokenT<std::vector<reco::Vertex>> vtxTagToken_;
 
 };
@@ -129,7 +129,7 @@ private:
 
 TallinnL1PFTauAnalyzer_Minbias::TallinnL1PFTauAnalyzer_Minbias(const edm::ParameterSet& iConfig)
  :
-  l1PFTauToken_   (consumes<l1t::TallinnL1PFTauCollection>          (iConfig.getParameter<edm::InputTag>("l1PFTauToken"))),
+  l1PFTauToken_   (consumes<TallinnL1PFTauCollection>               (iConfig.getParameter<edm::InputTag>("l1PFTauToken"))),
   vtxTagToken_    (consumes<std::vector<reco::Vertex>>              (iConfig.getParameter<edm::InputTag>("vtxTagToken")))
 {
    //now do what ever initialization is needed
@@ -161,7 +161,7 @@ TallinnL1PFTauAnalyzer_Minbias::analyze(const edm::Event& iEvent, const edm::Eve
    runNumber_ = iEvent.id().run();
    lumi_ = iEvent.luminosityBlock();
 
-   edm::Handle<l1t::TallinnL1PFTauCollection>  L1PFTauHandle;
+   edm::Handle<TallinnL1PFTauCollection>  L1PFTauHandle;
    iEvent.getByToken(l1PFTauToken_,  L1PFTauHandle);
 
    edm::Handle<std::vector<reco::Vertex> >  vertexes;
@@ -170,12 +170,12 @@ TallinnL1PFTauAnalyzer_Minbias::analyze(const edm::Event& iEvent, const edm::Eve
 
    if(L1PFTauHandle->size()>0){
      for(unsigned int i = 0; i < L1PFTauHandle->size(); i++){
-       const l1t::TallinnL1PFTau& l1pftau = (*L1PFTauHandle)[i];
+       const TallinnL1PFTau& l1pftau = (*L1PFTauHandle)[i];
        l1PFTauPt_.push_back(l1pftau.pt());
        l1PFTauEta_.push_back(l1pftau.eta());
        l1PFTauPhi_.push_back(l1pftau.phi());
-       l1PFTauType_.push_back(l1pftau.tauType());
-       l1PFTauIso_.push_back(l1pftau.chargedIso());
+       //l1PFTauType_.push_back(l1pftau.tauType());
+       l1PFTauIso_.push_back(l1pftau.sumChargedIso());
        l1PFTauTightIso_.push_back(l1pftau.passTightIso());
        l1PFTauMediumIso_.push_back(l1pftau.passMediumIso());
        l1PFTauLooseIso_.push_back(l1pftau.passLooseIso());
