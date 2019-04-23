@@ -120,6 +120,12 @@ from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEar
 process = customiseEarlyDelete(process)
 # End adding early deletion
 
+# Enable module run-time report
+#process.Timing = cms.Service("Timing",
+#  summaryOnly = cms.untracked.bool(False),
+#  useJobReport = cms.untracked.bool(False)
+#)
+
 #dump_file = open('dump.py','w')
 #dump_file.write(process.dumpPython())
 
