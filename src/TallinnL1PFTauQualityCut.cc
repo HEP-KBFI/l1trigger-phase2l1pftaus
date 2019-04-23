@@ -43,7 +43,7 @@ bool TallinnL1PFTauQualityCut::operator()(const l1t::PFCandidate& pfCand, const 
 
 TallinnL1PFTauQualityCut readL1PFTauQualityCut(const edm::ParameterSet& cfg, const std::string& pfCandType)
 {
-  edm::ParameterSet cfg_pfCandType = cfg.getParameter<edm::ParameterSet>("pfCandType");
+  edm::ParameterSet cfg_pfCandType = cfg.getParameter<edm::ParameterSet>(pfCandType);
   cfg_pfCandType.addParameter<std::string>("pfCandType", pfCandType);
   TallinnL1PFTauQualityCut qualityCut(cfg_pfCandType);
   return qualityCut;
