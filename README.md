@@ -26,10 +26,6 @@ git clone https://github.com/HEP-KBFI/dataformats-phase2l1pftaus $CMSSW_BASE/src
 scram b -j 8
 
 
-# To run the L1Tau Analyzer 
-
-cmsRun test_TallinnL1PFTauAnalyzer_Minbias.py
-
 # To run the L1Tau Producer
 
 cd L1Trigger/TallinnL1PFTaus/test/ 
