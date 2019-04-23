@@ -85,14 +85,14 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
       l1PFTauCollection_cleaned->push_back(l1PFTau);
     }
   }
-
+  /*
   for ( size_t idx = 0; idx < l1PFTauCollection_cleaned->size(); ++idx )
   {
     const TallinnL1PFTau& l1PFTau = l1PFTauCollection_cleaned->at(idx);
     std::cout << "tau #" << idx << ": pT = " << l1PFTau.pt()  << ", eta = " << l1PFTau.eta() << ", phi = " << l1PFTau.phi()
 	      << " (type = " << l1PFTau.tauType() << ")" << std::endl;
   }
-
+  */
   evt.put(std::move(l1PFTauCollection_cleaned), "L1PFTaus");
 }
 

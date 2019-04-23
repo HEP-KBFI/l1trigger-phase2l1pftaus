@@ -7,9 +7,8 @@ import FWCore.ParameterSet.Config as cms
 
 from Configuration.StandardSequences.Eras import eras
 
-#process = cms.Process('L1',eras.Phase2_trigger)
 from Configuration.ProcessModifiers.convertHGCalDigisSim_cff import convertHGCalDigisSim
-process = cms.Process('REPR',eras.Phase2_trigger,convertHGCalDigisSim)
+process = cms.Process('Produce',eras.Phase2_trigger,convertHGCalDigisSim)
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
@@ -25,7 +24,7 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load('L1Trigger.TrackFindingTracklet.L1TrackletTracks_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(5)
+    input = cms.untracked.int32(100)
 )
 
 # Input source
@@ -87,7 +86,7 @@ from L1Trigger.Phase2L1ParticleFlow.l1ParticleFlow_cff import *
 process.l1pf = cms.Path(process.pfTracksFromL1Tracks+process.l1ParticleFlow)
 
 ############################################################
-# L1 Tau object
+# Tallinn L1 Tau object
 ############################################################
 
 process.load("L1Trigger.TallinnL1PFTaus.TallinnL1PFTauProducer_cff")
@@ -99,10 +98,13 @@ process.out = cms.OutputModule(
     "PoolOutputModule",
     fileName = cms.untracked.string( 'NTuple_TallinnL1PFTauProducer.root' ),
     outputCommands = cms.untracked.vstring(
-        #'keep recoGenJets_*_*_*',
-        'keep l1pfCandidates_*_*_*',
-        'keep TallinnL1PFTauProducer_*_*_*',
-        'keep TallinnL1PFTau_*_*_*'
+        #'keep *_*_*_*',
+        'keep *_l1pfCandidates_PF_*',
+        'keep *_slimmedTaus_*_*',
+        'keep *_offlineSlimmedPrimaryVertices_*_*',
+        'keep *_generator_*_*',
+        'keep *_caloStage2Digis_*_*',
+        'keep *_TallinnL1PFTauProducer_*_*',
          )
     )
 process.outpath = cms.EndPath(process.out)
