@@ -10,6 +10,7 @@ TallinnL1PFTauProducer = cms.EDProducer("TallinnL1PFTauProducer",
   max_signalConeSize = cms.double(0.10),
   stripSize_eta      = cms.double(0.05),
   stripSize_phi      = cms.double(0.20),
+  isolationConeSize  = cms.double(0.4),                      
   deltaR_cleaning    = cms.double(0.4),
   signalQualityCuts = cms.PSet(
     chargedHadron = cms.PSet(
