@@ -30,10 +30,11 @@ void TallinnL1PFTauBuilder::reset()
   signalConeSize_ = 0.;
   signalConeSize2_ = 0.;
 
+  l1PFCandProductID_ = edm::ProductID();
   l1PFTauSeed_eta_ = 0.;
   l1PFTauSeed_phi_ = 0.;
   primaryVertex_ = nullptr;
-  l1PFTau_ = TallinnL1PFTau();
+  l1PFTau_ = l1t::TallinnL1PFTau();
 
   strip_p4_ = reco::Particle::LorentzVector(0.,0.,0.,0.);
 
@@ -59,38 +60,39 @@ void TallinnL1PFTauBuilder::reset()
   sumMuons_.clear();
 }
 
-void TallinnL1PFTauBuilder::setL1PFTauSeed_and_Vertex(const l1t::PFCandidate& l1PFCand_seed, const reco::Vertex* primaryVertex)
+void TallinnL1PFTauBuilder::setL1PFTauSeed_and_Vertex(const l1t::PFCandidateRef& l1PFCand_seed, const reco::Vertex* primaryVertex)
 {
   l1PFTauSeed_ = l1PFCand_seed;
-  l1PFTauSeed_eta_ = l1PFTauSeed_.eta();
-  l1PFTauSeed_phi_ = l1PFTauSeed_.phi();
+  l1PFTauSeed_eta_ = l1PFTauSeed_->eta();
+  l1PFTauSeed_phi_ = l1PFTauSeed_->phi();
+  l1PFCandProductID_ = l1PFCand_seed.id();
   primaryVertex_ = primaryVertex;
 }
 
-void TallinnL1PFTauBuilder::addL1PFCandidates(const l1t::PFCandidateCollection& l1PFCands)
+void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands)
 {
   for ( auto l1PFCand : l1PFCands ) 
   {
-    if( !isWithinIsolationCone(l1PFCand) )
+    if( !isWithinIsolationCone(*l1PFCand) )
       continue;
     sumAllL1PFCandidates_.push_back(l1PFCand);
-    if ( l1PFCand.id() == l1t::PFCandidate::ChargedHadron ) 
+    if ( l1PFCand->id() == l1t::PFCandidate::ChargedHadron ) 
     {
       sumChargedHadrons_.push_back(l1PFCand);
     }
-    else if ( l1PFCand.id() == l1t::PFCandidate::Electron ) 
+    else if ( l1PFCand->id() == l1t::PFCandidate::Electron ) 
     {
       sumElectrons_.push_back(l1PFCand);
     }
-    else if ( l1PFCand.id() == l1t::PFCandidate::NeutralHadron ) 
+    else if ( l1PFCand->id() == l1t::PFCandidate::NeutralHadron ) 
     {
       sumNeutralHadrons_.push_back(l1PFCand);
     }
-    else if ( l1PFCand.id() == l1t::PFCandidate::Photon ) 
+    else if ( l1PFCand->id() == l1t::PFCandidate::Photon ) 
     {
       sumPhotons_.push_back(l1PFCand);
     }
-    else if ( l1PFCand.id() == l1t::PFCandidate::Muon ) 
+    else if ( l1PFCand->id() == l1t::PFCandidate::Muon ) 
     {
       sumMuons_.push_back(l1PFCand);
     }
@@ -99,7 +101,7 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const l1t::PFCandidateCollection& 
   double sumAllL1PFCandidates_pt = 0.;
   for ( auto l1PFCand : sumAllL1PFCandidates_ )
   {
-    sumAllL1PFCandidates_pt += l1PFCand.pt();
+    sumAllL1PFCandidates_pt += l1PFCand->pt();
   }
   signalConeSize_ = 3.0/std::max(1., sumAllL1PFCandidates_pt);
   if ( signalConeSize_ < min_signalConeSize_ ) signalConeSize_ = min_signalConeSize_;
@@ -109,60 +111,61 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const l1t::PFCandidateCollection& 
   for ( auto l1PFCand : sumAllL1PFCandidates_ ) 
   {
     bool isSignalPFCand = false;
-    bool isElectron_or_Photon = l1PFCand.id() == l1t::PFCandidate::Electron || l1PFCand.id() == l1t::PFCandidate::Photon;
-    bool isChargedHadron = l1PFCand.id() == l1t::PFCandidate::ChargedHadron;
-    if ( (isWithinSignalCone(l1PFCand) || (isElectron_or_Photon && isWithinStrip(l1PFCand))) && !(isChargedHadron && signalChargedHadrons_.size() > 3) ) 
+    bool isElectron_or_Photon = l1PFCand->id() == l1t::PFCandidate::Electron || l1PFCand->id() == l1t::PFCandidate::Photon;
+    bool isChargedHadron = l1PFCand->id() == l1t::PFCandidate::ChargedHadron;
+    if ( (isWithinSignalCone(*l1PFCand) || (isElectron_or_Photon && isWithinStrip(*l1PFCand))) && !(isChargedHadron && signalChargedHadrons_.size() > 3) ) 
     { 
       isSignalPFCand = true;
     }
 
-    if ( isSignalPFCand && isSelected(signalQualityCuts_, l1PFCand, primaryVertex_) )
+    if ( isSignalPFCand && isSelected(signalQualityCuts_, *l1PFCand, primaryVertex_) )
     {
       signalAllL1PFCandidates_.push_back(l1PFCand);  
-      if ( l1PFCand.id() == l1t::PFCandidate::ChargedHadron ) 
+      if ( l1PFCand->id() == l1t::PFCandidate::ChargedHadron ) 
       {
 	signalChargedHadrons_.push_back(l1PFCand);
       }
-      else if ( l1PFCand.id() == l1t::PFCandidate::Electron ) 
+      else if ( l1PFCand->id() == l1t::PFCandidate::Electron ) 
       {
 	signalElectrons_.push_back(l1PFCand);
-	strip_p4_ += l1PFCand.p4();
+	strip_p4_ += l1PFCand->p4();
       }
-      else if ( l1PFCand.id() == l1t::PFCandidate::NeutralHadron ) 
+      else if ( l1PFCand->id() == l1t::PFCandidate::NeutralHadron ) 
       {
 	signalNeutralHadrons_.push_back(l1PFCand);
       }
-      else if ( l1PFCand.id() == l1t::PFCandidate::Photon ) 
+      else if ( l1PFCand->id() == l1t::PFCandidate::Photon ) 
       {
 	signalPhotons_.push_back(l1PFCand);
-	strip_p4_ += l1PFCand.p4();
+	strip_p4_ += l1PFCand->p4();
       }
-      else if ( l1PFCand.id() == l1t::PFCandidate::Muon ) 
+      else if ( l1PFCand->id() == l1t::PFCandidate::Muon ) 
       {
 	signalMuons_.push_back(l1PFCand);
       }
     } 
 
-    if ( isSelected(isolationQualityCuts_, l1PFCand, primaryVertex_) && !isSignalPFCand )
+    bool isIsolationPFCand = isWithinIsolationCone(*l1PFCand) && !isSignalPFCand;
+    if ( isIsolationPFCand && isSelected(isolationQualityCuts_, *l1PFCand, primaryVertex_) )
     {
       isoAllL1PFCandidates_.push_back(l1PFCand);
-      if ( l1PFCand.id() == l1t::PFCandidate::ChargedHadron ) 
+      if ( l1PFCand->id() == l1t::PFCandidate::ChargedHadron ) 
       {
 	isoChargedHadrons_.push_back(l1PFCand);
       }
-      else if ( l1PFCand.id() == l1t::PFCandidate::Electron )
+      else if ( l1PFCand->id() == l1t::PFCandidate::Electron )
       {
 	isoElectrons_.push_back(l1PFCand);
       }
-      else if ( l1PFCand.id() == l1t::PFCandidate::NeutralHadron ) 
+      else if ( l1PFCand->id() == l1t::PFCandidate::NeutralHadron ) 
       {
 	isoNeutralHadrons_.push_back(l1PFCand);
       }
-      else if ( l1PFCand.id() == l1t::PFCandidate::Photon )
+      else if ( l1PFCand->id() == l1t::PFCandidate::Photon )
       {
 	isoPhotons_.push_back(l1PFCand);
       }
-      else if ( l1PFCand.id() == l1t::PFCandidate::Muon )
+      else if ( l1PFCand->id() == l1t::PFCandidate::Muon )
       {
 	isoMuons_.push_back(l1PFCand);
       }
@@ -199,7 +202,7 @@ void TallinnL1PFTauBuilder::buildL1PFTau()
   reco::Particle::LorentzVector l1PFTau_p4;
   for ( auto l1PFCand : signalAllL1PFCandidates_ )
   {
-    l1PFTau_p4 += l1PFCand.p4();
+    l1PFTau_p4 += l1PFCand->p4();
   }
   l1PFTau_.setP4(l1PFTau_p4);
 
@@ -209,19 +212,51 @@ void TallinnL1PFTauBuilder::buildL1PFTau()
     l1PFTau_.leadChargedPFCand_ = signalChargedHadrons_[0];
   }
 
+  l1PFTau_.signalAllL1PFCandidates_ = convertToRefVector(signalAllL1PFCandidates_);
+  l1PFTau_.signalChargedHadrons_ = convertToRefVector(signalChargedHadrons_);
+  l1PFTau_.signalElectrons_ = convertToRefVector(signalElectrons_);
+  l1PFTau_.signalNeutralHadrons_ = convertToRefVector(signalNeutralHadrons_);
+  l1PFTau_.signalPhotons_ = convertToRefVector(signalPhotons_);
+  l1PFTau_.signalMuons_ = convertToRefVector(signalMuons_);
+  
+  l1PFTau_.isoAllL1PFCandidates_ = convertToRefVector(isoAllL1PFCandidates_);
+  l1PFTau_.isoChargedHadrons_ = convertToRefVector(isoChargedHadrons_);
+  l1PFTau_.isoElectrons_ = convertToRefVector(isoElectrons_);
+  l1PFTau_.isoNeutralHadrons_ = convertToRefVector(isoNeutralHadrons_);
+  l1PFTau_.isoPhotons_ = convertToRefVector(isoPhotons_);
+  l1PFTau_.isoMuons_ = convertToRefVector(isoMuons_);
+  
+  l1PFTau_.sumAllL1PFCandidates_ = convertToRefVector(sumAllL1PFCandidates_);
+  l1PFTau_.sumChargedHadrons_ = convertToRefVector(sumChargedHadrons_);
+  l1PFTau_.sumElectrons_ = convertToRefVector(sumElectrons_);
+  l1PFTau_.sumNeutralHadrons_ = convertToRefVector(sumNeutralHadrons_);
+  l1PFTau_.sumPhotons_ = convertToRefVector(sumPhotons_);
+  l1PFTau_.sumMuons_ = convertToRefVector(sumMuons_);
+
+  if ( l1PFTau_.signalChargedHadrons_.size() > 1 ) 
+  { 
+    if ( strip_p4_.pt() < 5.  ) l1PFTau_.tauType_ = l1t::TallinnL1PFTau::kThreeProng0Pi0;
+    else                        l1PFTau_.tauType_ = l1t::TallinnL1PFTau::kThreeProng1Pi0;
+  } 
+  else 
+  {
+    if ( strip_p4_.pt() < 5.  ) l1PFTau_.tauType_ = l1t::TallinnL1PFTau::kOneProng0Pi0;
+    else                        l1PFTau_.tauType_ = l1t::TallinnL1PFTau::kOneProng1Pi0;
+  }
+
   l1PFTau_.strip_p4_ = strip_p4_;
 
   double sumChargedIso = 0.;
   double sumNeutralIso = 0.;
   for ( auto l1PFCand : isoAllL1PFCandidates_ )
   {
-    if ( l1PFCand.charge() != 0 ) 
+    if ( l1PFCand->charge() != 0 ) 
     { 
-      sumChargedIso += l1PFCand.pt();
+      sumChargedIso += l1PFCand->pt();
     }
-    else if ( l1PFCand.id() == l1t::PFCandidate::Photon ) 
+    else if ( l1PFCand->id() == l1t::PFCandidate::Photon ) 
     { 
-      sumNeutralIso += l1PFCand.pt();
+      sumNeutralIso += l1PFCand->pt();
     }
   }
   l1PFTau_.sumChargedIso_ = sumChargedIso;
@@ -248,4 +283,12 @@ void TallinnL1PFTauBuilder::buildL1PFTau()
   }
 }
 
-
+l1t::PFCandidateRefVector TallinnL1PFTauBuilder::convertToRefVector(const std::vector<l1t::PFCandidateRef>& l1PFCands)
+{
+  l1t::PFCandidateRefVector l1PFCands_refVector(l1PFCandProductID_);
+  for ( auto l1PFCand : l1PFCands ) 
+  {
+    l1PFCands_refVector.push_back(l1PFCand);
+  }
+  return l1PFCands_refVector;
+}

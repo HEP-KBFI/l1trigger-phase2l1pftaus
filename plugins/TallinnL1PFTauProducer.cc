@@ -2,12 +2,10 @@
 
 #include "FWCore/Utilities/interface/InputTag.h"
 
-using namespace l1t;
-
 TallinnL1PFTauProducer::TallinnL1PFTauProducer(const edm::ParameterSet& cfg) 
   : tauBuilder_(cfg)
-  , l1PFCandToken_(consumes<vector<l1t::PFCandidate>>(cfg.getParameter<edm::InputTag>("l1PFCandToken")))
-  , vtxTagToken_(consumes<std::vector<reco::Vertex>>(cfg.getParameter<edm::InputTag>("vtxTagToken")))
+  , l1PFCandToken_(consumes<l1t::PFCandidateCollection>(cfg.getParameter<edm::InputTag>("l1PFCandToken")))
+  , vtxTagToken_(consumes<reco::VertexCollection>(cfg.getParameter<edm::InputTag>("vtxTagToken")))
   , min_tauSeed_pt_(cfg.getParameter<double>("min_tauSeed_pt"))
   , max_tauSeed_eta_(cfg.getParameter<double>("max_tauSeed_eta"))
   , max_tauSeed_dz_(cfg.getParameter<double>("max_tauSeed_dz"))
@@ -21,7 +19,7 @@ TallinnL1PFTauProducer::TallinnL1PFTauProducer(const edm::ParameterSet& cfg)
   edm::ParameterSet cfg_isolationQualityCuts = cfg.getParameter<edm::ParameterSet>("isolationQualityCuts");
   isolationQualityCuts_ = readL1PFTauQualityCuts(cfg_isolationQualityCuts);
 
-  produces<TallinnL1PFTauCollection>("L1PFTaus").setBranchAlias("L1PFTaus");
+  produces<l1t::TallinnL1PFTauCollection>("L1PFTaus").setBranchAlias("L1PFTaus");
 }
 
 TallinnL1PFTauProducer::~TallinnL1PFTauProducer()
@@ -30,30 +28,31 @@ TallinnL1PFTauProducer::~TallinnL1PFTauProducer()
 namespace
 {
   bool
-  isHigherPt(const l1t::PFCandidate& l1PFCand1,
-             const l1t::PFCandidate& l1PFCand2)
+  isHigherPt(const l1t::PFCandidateRef& l1PFCand1,
+             const l1t::PFCandidateRef& l1PFCand2)
   {
-    return l1PFCand1.pt() > l1PFCand2.pt();
+    return l1PFCand1->pt() > l1PFCand2->pt();
   }
 }
 
 void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
 {
-  std::unique_ptr<TallinnL1PFTauCollection> l1PFTauCollection_cleaned(new TallinnL1PFTauCollection());
+  std::unique_ptr<l1t::TallinnL1PFTauCollection> l1PFTauCollection_cleaned(new l1t::TallinnL1PFTauCollection());
 
   edm::Handle<l1t::PFCandidateCollection> l1PFCands;
   evt.getByToken(l1PFCandToken_, l1PFCands);
 
-  edm::Handle<std::vector<reco::Vertex>> vertices;
+  edm::Handle<reco::VertexCollection> vertices;
   evt.getByToken(vtxTagToken_, vertices);
   const reco::Vertex* primaryVertex = ( vertices->size() > 0 ) ? &vertices->at(0) : nullptr;
 
   // build collection of selected PFCandidates
-  l1t::PFCandidateCollection l1PFCands_selected;
-  for ( auto l1PFCand : *l1PFCands )
-  {
-    if ( isSelected(signalQualityCuts_,    l1PFCand, primaryVertex) || 
-	 isSelected(isolationQualityCuts_, l1PFCand, primaryVertex) ) 
+  std::vector<l1t::PFCandidateRef> l1PFCands_selected;
+  size_t numL1PFCands = l1PFCands->size();
+  for ( size_t idxL1PFCand = 0; idxL1PFCand < numL1PFCands; ++idxL1PFCand ) {
+    l1t::PFCandidateRef l1PFCand(l1PFCands, idxL1PFCand);
+    if ( isSelected(signalQualityCuts_,    *l1PFCand, primaryVertex) || 
+	 isSelected(isolationQualityCuts_, *l1PFCand, primaryVertex) ) 
     {
       l1PFCands_selected.push_back(l1PFCand);
     }
@@ -62,15 +61,15 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
   // sort PFCandidate collection by decreasing pT
   std::sort(l1PFCands_selected.begin(), l1PFCands_selected.end(), isHigherPt);
 
-  l1t::PFCandidateCollection tauSeeds;
+  std::vector<l1t::PFCandidateRef> tauSeeds;
   for ( auto l1PFCand : l1PFCands_selected ) 
   {
-    if ( l1PFCand.charge() != 0 && l1PFCand.pt() > min_tauSeed_pt_ && fabs(l1PFCand.eta()) < max_tauSeed_eta_ )
+    if ( l1PFCand->charge() != 0 && l1PFCand->pt() > min_tauSeed_pt_ && fabs(l1PFCand->eta()) < max_tauSeed_eta_ )
     {
       bool isFromPrimaryVertex = false;
       if ( primaryVertex ) 
       {
-        l1t::PFTrackRef l1PFTrack = l1PFCand.pfTrack();
+        l1t::PFTrackRef l1PFTrack = l1PFCand->pfTrack();
         double dz = std::fabs(l1PFTrack->vertex().z() - primaryVertex->z());
         if ( dz < max_tauSeed_dz_ ) 
         {
@@ -88,7 +87,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
     }
   }
 
-  TallinnL1PFTauCollection l1PFTauCollection_uncleaned;
+  l1t::TallinnL1PFTauCollection l1PFTauCollection_uncleaned;
   for ( auto tauSeed : tauSeeds ) 
   {
     tauBuilder_.reset();
@@ -115,14 +114,17 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
       l1PFTauCollection_cleaned->push_back(l1PFTau);
     }
   }
-  /*
-  for ( size_t idx = 0; idx < l1PFTauCollection_cleaned->size(); ++idx )
+  
+  if ( debug_ ) 
   {
-    const TallinnL1PFTau& l1PFTau = l1PFTauCollection_cleaned->at(idx);
-    std::cout << "tau #" << idx << ": pT = " << l1PFTau.pt()  << ", eta = " << l1PFTau.eta() << ", phi = " << l1PFTau.phi()
-	      << " (type = " << l1PFTau.tauType() << ")" << std::endl;
+    for ( size_t idx = 0; idx < l1PFTauCollection_cleaned->size(); ++idx )
+    {
+      const l1t::TallinnL1PFTau& l1PFTau = l1PFTauCollection_cleaned->at(idx);
+      std::cout << "tau #" << idx << ": pT = " << l1PFTau.pt()  << ", eta = " << l1PFTau.eta() << ", phi = " << l1PFTau.phi()
+	        << " (type = " << l1PFTau.tauType() << ")" << std::endl;
+    }
   }
-  */
+
   evt.put(std::move(l1PFTauCollection_cleaned), "L1PFTaus");
 }
 

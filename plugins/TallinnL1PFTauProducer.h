@@ -6,11 +6,14 @@
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 
-#include "L1Trigger/TallinnL1PFTaus/interface/TallinnL1PFTauQualityCut.h"
-#include "L1Trigger/TallinnL1PFTaus/interface/TallinnL1PFTauBuilder.h"
-#include "DataFormats/TallinnL1PFTaus/interface/TallinnL1PFTau.h"
-#include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidate.h"
-#include "DataFormats/VertexReco/interface/Vertex.h"
+#include "L1Trigger/TallinnL1PFTaus/interface/TallinnL1PFTauQualityCut.h" // TallinnL1PFTauQualityCut
+#include "L1Trigger/TallinnL1PFTaus/interface/TallinnL1PFTauBuilder.h"    // TallinnL1PFTauBuilder
+#include "DataFormats/TallinnL1PFTaus/interface/TallinnL1PFTau.h"         // l1t::TallinnL1PFTauC
+#include "DataFormats/TallinnL1PFTaus/interface/TallinnL1PFTauFwd.h"      // l1t::TallinnL1PFTauCollection
+#include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidate.h"       // l1t::PFCandidate
+#include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidateFwd.h"    // l1t::PFCandidateCollection, l1t::PFCandidateRef
+#include "DataFormats/VertexReco/interface/Vertex.h"                      // reco::Vertex
+#include "DataFormats/VertexReco/interface/VertexFwd.h"                   // reco::VertexCollection
 
 #include <vector>
 
@@ -25,8 +28,8 @@ class TallinnL1PFTauProducer : public edm::EDProducer
 
   TallinnL1PFTauBuilder tauBuilder_;
 
-  edm::EDGetTokenT<std::vector<l1t::PFCandidate>> l1PFCandToken_;
-  edm::EDGetTokenT<std::vector<reco::Vertex>> vtxTagToken_;
+  edm::EDGetTokenT<l1t::PFCandidateCollection> l1PFCandToken_;
+  edm::EDGetTokenT<reco::VertexCollection> vtxTagToken_;
 
   std::vector<TallinnL1PFTauQualityCut> signalQualityCuts_;
   std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_;

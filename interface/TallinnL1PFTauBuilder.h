@@ -2,6 +2,7 @@
 #define L1Trigger_TallinnL1PFTaus_TallinnL1PFTauBuilder_h
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "DataFormats/Provenance/interface/ProductID.h"
 
 #include "L1Trigger/TallinnL1PFTaus/interface/TallinnL1PFTauQualityCut.h"
 #include "DataFormats/TallinnL1PFTaus/interface/TallinnL1PFTau.h"
@@ -16,13 +17,14 @@ class TallinnL1PFTauBuilder
   ~TallinnL1PFTauBuilder();
   
   void reset();
-  void setL1PFTauSeed_and_Vertex(const l1t::PFCandidate& l1PFCand_seed, const reco::Vertex* primaryVertex);
-  void addL1PFCandidates(const l1t::PFCandidateCollection& l1PFCands);
+  void setL1PFTauSeed_and_Vertex(const l1t::PFCandidateRef& l1PFCand_seed, const reco::Vertex* primaryVertex);
+  void addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands);
   void buildL1PFTau();
 
-  TallinnL1PFTau getL1PFTau() const { return l1PFTau_; }
+  l1t::TallinnL1PFTau getL1PFTau() const { return l1PFTau_; }
 
  private:
+  l1t::PFCandidateRefVector convertToRefVector(const std::vector<l1t::PFCandidateRef>& l1PFCands);
 
   bool isWithinSignalCone(const l1t::PFCandidate& l1PFCand);
   bool isWithinStrip(const l1t::PFCandidate& l1PFCand);
@@ -42,34 +44,35 @@ class TallinnL1PFTauBuilder
   std::vector<TallinnL1PFTauQualityCut> signalQualityCuts_;
   std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_;
 
-  l1t::PFCandidate l1PFTauSeed_;
+  edm::ProductID l1PFCandProductID_;
+  l1t::PFCandidateRef l1PFTauSeed_;
   double l1PFTauSeed_eta_;
   double l1PFTauSeed_phi_;
   const reco::Vertex* primaryVertex_;
-  TallinnL1PFTau l1PFTau_;
+  l1t::TallinnL1PFTau l1PFTau_;
 
   reco::Particle::LorentzVector strip_p4_;
 
-  l1t::PFCandidateCollection signalAllL1PFCandidates_;
-  l1t::PFCandidateCollection signalChargedHadrons_;
-  l1t::PFCandidateCollection signalElectrons_;
-  l1t::PFCandidateCollection signalNeutralHadrons_;
-  l1t::PFCandidateCollection signalPhotons_;
-  l1t::PFCandidateCollection signalMuons_;
+  std::vector<l1t::PFCandidateRef> signalAllL1PFCandidates_;
+  std::vector<l1t::PFCandidateRef> signalChargedHadrons_;
+  std::vector<l1t::PFCandidateRef> signalElectrons_;
+  std::vector<l1t::PFCandidateRef> signalNeutralHadrons_;
+  std::vector<l1t::PFCandidateRef> signalPhotons_;
+  std::vector<l1t::PFCandidateRef> signalMuons_;
   
-  l1t::PFCandidateCollection isoAllL1PFCandidates_;
-  l1t::PFCandidateCollection isoChargedHadrons_;
-  l1t::PFCandidateCollection isoElectrons_;
-  l1t::PFCandidateCollection isoNeutralHadrons_;
-  l1t::PFCandidateCollection isoPhotons_;
-  l1t::PFCandidateCollection isoMuons_;
+  std::vector<l1t::PFCandidateRef> isoAllL1PFCandidates_;
+  std::vector<l1t::PFCandidateRef> isoChargedHadrons_;
+  std::vector<l1t::PFCandidateRef> isoElectrons_;
+  std::vector<l1t::PFCandidateRef> isoNeutralHadrons_;
+  std::vector<l1t::PFCandidateRef> isoPhotons_;
+  std::vector<l1t::PFCandidateRef> isoMuons_;
   
-  l1t::PFCandidateCollection sumAllL1PFCandidates_;
-  l1t::PFCandidateCollection sumChargedHadrons_;
-  l1t::PFCandidateCollection sumElectrons_;
-  l1t::PFCandidateCollection sumNeutralHadrons_;
-  l1t::PFCandidateCollection sumPhotons_;
-  l1t::PFCandidateCollection sumMuons_;
+  std::vector<l1t::PFCandidateRef> sumAllL1PFCandidates_;
+  std::vector<l1t::PFCandidateRef> sumChargedHadrons_;
+  std::vector<l1t::PFCandidateRef> sumElectrons_;
+  std::vector<l1t::PFCandidateRef> sumNeutralHadrons_;
+  std::vector<l1t::PFCandidateRef> sumPhotons_;
+  std::vector<l1t::PFCandidateRef> sumMuons_;
 };
 
 #endif
