@@ -14,6 +14,13 @@ TallinnL1PFTauProducer::TallinnL1PFTauProducer(const edm::ParameterSet& cfg)
   , usePFJetSeeds_(cfg.getParameter<bool>("usePFJetSeeds"))
   , min_seedPFJet_pt_(cfg.getParameter<double>("min_seedPFJet_pt"))
   , max_seedPFJet_eta_(cfg.getParameter<double>("max_seedPFJet_eta"))
+  , min_PFTau_pt_(cfg.getParameter<double>("min_PFTau_pt"))
+  , max_PFTau_eta_(cfg.getParameter<double>("max_PFTau_eta"))
+  , min_leadChargedPFCand_pt_(cfg.getParameter<double>("min_leadChargedPFCand_pt"))
+  , max_leadChargedPFCand_eta_(cfg.getParameter<double>("max_leadChargedPFCand_eta"))
+  , max_leadChargedPFCand_dz_(cfg.getParameter<double>("max_leadChargedPFCand_dz"))
+  , max_chargedIso_(cfg.getParameter<double>("max_chargedIso"))
+  , max_chargedRelIso_(cfg.getParameter<double>("max_chargedRelIso"))
   , deltaR_cleaning_(cfg.getParameter<double>("deltaR_cleaning"))
   , debug_(cfg.getUntrackedParameter<bool>("debug", false))
 {
@@ -135,19 +142,26 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
 
   for ( auto l1PFTau : l1PFTauCollection_uncleaned )
   {
-    bool isOverlap = false;
-    for ( auto l1PFTau2 : *l1PFTauCollection_cleaned )
+    if ( l1PFTau.pt() > min_PFTau_pt_ && std::fabs(l1PFTau.eta()) < max_PFTau_eta_ &&
+	 l1PFTau.leadChargedPFCand().isNonnull() && 
+	 l1PFTau.leadChargedPFCand()->pt() > min_leadChargedPFCand_pt_ && std::fabs(l1PFTau.leadChargedPFCand()->eta()) < max_leadChargedPFCand_eta_ && 
+	 std::fabs(l1PFTau.leadChargedPFCand()->pfTrack()->vertex().z() - primaryVertex->z()) < max_leadChargedPFCand_dz_ &&
+	 l1PFTau.sumChargedIso() < max_chargedIso_ && l1PFTau.sumChargedIso() < max_chargedRelIso_*l1PFTau.pt() )
     {
-      double deltaEta = l1PFTau.eta() - l1PFTau2.eta();
-      double deltaPhi = l1PFTau.phi() - l1PFTau2.phi();
-      if ( (deltaEta*deltaEta + deltaPhi*deltaPhi) < deltaR2_cleaning_ ) 
+      bool isOverlap = false;
+      for ( auto l1PFTau2 : *l1PFTauCollection_cleaned )
       {
-	isOverlap = true;
-      }      
-    }
-    if ( !isOverlap )
-    {
-      l1PFTauCollection_cleaned->push_back(l1PFTau);
+        double deltaEta = l1PFTau.eta() - l1PFTau2.eta();
+        double deltaPhi = l1PFTau.phi() - l1PFTau2.phi();
+        if ( (deltaEta*deltaEta + deltaPhi*deltaPhi) < deltaR2_cleaning_ ) 
+        {
+  	  isOverlap = true;
+        }      
+      }
+      if ( !isOverlap )
+      {
+        l1PFTauCollection_cleaned->push_back(l1PFTau);
+      }
     }
   }
   
@@ -156,8 +170,31 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
     for ( size_t idx = 0; idx < l1PFTauCollection_cleaned->size(); ++idx )
     {
       const l1t::TallinnL1PFTau& l1PFTau = l1PFTauCollection_cleaned->at(idx);
-      std::cout << "tau #" << idx << ": pT = " << l1PFTau.pt()  << ", eta = " << l1PFTau.eta() << ", phi = " << l1PFTau.phi()
-	        << " (type = " << l1PFTau.tauType() << ")" << std::endl;
+      std::cout << "tau #" << idx << ": pT = " << l1PFTau.pt()  << ", eta = " << l1PFTau.eta() << ", phi = " << l1PFTau.phi() 
+		<< " (type = " << l1PFTau.tauType() << ")" << std::endl;
+      std::cout << " leadChargedPFCand:";
+      if ( l1PFTau.leadChargedPFCand().isNonnull() ) 
+      {
+	const l1t::PFCandidate& leadChargedPFCand = *l1PFTau.leadChargedPFCand();
+	std::cout << " pT = " << leadChargedPFCand.pt()  << ", eta = " << leadChargedPFCand.eta() << ", phi = " << leadChargedPFCand.phi(); 
+      }
+      else
+      {
+	std::cout << " N/A";
+      }
+      std::cout << std::endl;
+      std::cout << " seed:";
+      if ( l1PFTau.isChargedPFCandSeeded() ) 
+      {
+	std::cout << " chargedPFCand";
+      }
+      else if ( l1PFTau.isPFJetSeeded() ) 
+      {
+	std::cout << " PFJet";
+      }
+      else assert(0);
+      std::cout << std::endl;
+      std::cout << " isolation: charged = " << l1PFTau.sumChargedIso() << ", neutral = " << l1PFTau.sumNeutralIso() << std::endl;
     }
   }
 

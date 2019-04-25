@@ -46,6 +46,14 @@ class TallinnL1PFTauProducer : public edm::EDProducer
   double min_seedPFJet_pt_;
   double max_seedPFJet_eta_;
 
+  double min_PFTau_pt_;
+  double max_PFTau_eta_;
+  double min_leadChargedPFCand_pt_;
+  double max_leadChargedPFCand_eta_;
+  double max_leadChargedPFCand_dz_;
+  double max_chargedIso_;
+  double max_chargedRelIso_;
+
   double deltaR_cleaning_;
   double deltaR2_cleaning_;
 

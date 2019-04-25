@@ -225,9 +225,13 @@ void TallinnL1PFTauBuilder::buildL1PFTau()
 
   l1PFTau_.seedChargedPFCand_ = l1PFCand_seed_;
   l1PFTau_.seedPFJet_ = l1PFJet_seed_;
-  if ( signalChargedHadrons_.size() >= 1 )
+  for ( auto l1PFCand : signalAllL1PFCandidates_ )
   {
-    l1PFTau_.leadChargedPFCand_ = signalChargedHadrons_[0];
+    if ( l1PFCand->charge() != 0 ) 
+    {
+      l1PFTau_.leadChargedPFCand_ = l1PFCand;
+      break;
+    }
   }
 
   l1PFTau_.signalAllL1PFCandidates_ = convertToRefVector(signalAllL1PFCandidates_);
