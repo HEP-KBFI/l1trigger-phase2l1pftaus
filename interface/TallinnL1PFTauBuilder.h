@@ -1,12 +1,15 @@
 #ifndef L1Trigger_TallinnL1PFTaus_TallinnL1PFTauBuilder_h
 #define L1Trigger_TallinnL1PFTaus_TallinnL1PFTauBuilder_h
 
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "DataFormats/Provenance/interface/ProductID.h"
+#include "FWCore/ParameterSet/interface/ParameterSet.h"                   // edm::ParameterSet
+#include "DataFormats/Provenance/interface/ProductID.h"                   // edm::ProductID
 
-#include "L1Trigger/TallinnL1PFTaus/interface/TallinnL1PFTauQualityCut.h"
-#include "DataFormats/TallinnL1PFTaus/interface/TallinnL1PFTau.h"
-#include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidate.h"
+#include "L1Trigger/TallinnL1PFTaus/interface/TallinnL1PFTauQualityCut.h" // TallinnL1PFTauQualityCut
+#include "DataFormats/TallinnL1PFTaus/interface/TallinnL1PFTau.h"         // l1t::TallinnL1PFTau
+#include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidate.h"       // l1t::PFCandidate
+#include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidateFwd.h"    // l1t::PFCandidateCollection, l1t::PFCandidateRef
+#include "DataFormats/JetReco/interface/PFJet.h"                          // reco::PFJet
+#include "DataFormats/JetReco/interface/PFJetCollection.h"                // reco::PFJetCollection, reco::PFJetRef
 
 #include <vector>
 
@@ -17,7 +20,10 @@ class TallinnL1PFTauBuilder
   ~TallinnL1PFTauBuilder();
   
   void reset();
-  void setL1PFTauSeed_and_Vertex(const l1t::PFCandidateRef& l1PFCand_seed, const reco::Vertex* primaryVertex);
+  void setL1PFCandProductID(const edm::ProductID& l1PFCandProductID);
+  void setVertex(const reco::Vertex* primaryVertex);
+  void setL1PFTauSeed(const l1t::PFCandidateRef& l1PFCand_seed);
+  void setL1PFTauSeed(const reco::PFJetRef& l1PFJet_seed);
   void addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands);
   void buildL1PFTau();
 
@@ -45,7 +51,8 @@ class TallinnL1PFTauBuilder
   std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_;
 
   edm::ProductID l1PFCandProductID_;
-  l1t::PFCandidateRef l1PFTauSeed_;
+  l1t::PFCandidateRef l1PFCand_seed_;
+  reco::PFJetRef l1PFJet_seed_;
   double l1PFTauSeed_eta_;
   double l1PFTauSeed_phi_;
   const reco::Vertex* primaryVertex_;

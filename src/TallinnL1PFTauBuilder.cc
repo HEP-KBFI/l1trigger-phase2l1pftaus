@@ -31,6 +31,8 @@ void TallinnL1PFTauBuilder::reset()
   signalConeSize2_ = 0.;
 
   l1PFCandProductID_ = edm::ProductID();
+  l1PFCand_seed_ = l1t::PFCandidateRef();
+  l1PFJet_seed_ = reco::PFJetRef();
   l1PFTauSeed_eta_ = 0.;
   l1PFTauSeed_phi_ = 0.;
   primaryVertex_ = nullptr;
@@ -60,13 +62,28 @@ void TallinnL1PFTauBuilder::reset()
   sumMuons_.clear();
 }
 
-void TallinnL1PFTauBuilder::setL1PFTauSeed_and_Vertex(const l1t::PFCandidateRef& l1PFCand_seed, const reco::Vertex* primaryVertex)
+void TallinnL1PFTauBuilder::setL1PFCandProductID(const edm::ProductID& l1PFCandProductID)
 {
-  l1PFTauSeed_ = l1PFCand_seed;
-  l1PFTauSeed_eta_ = l1PFTauSeed_->eta();
-  l1PFTauSeed_phi_ = l1PFTauSeed_->phi();
-  l1PFCandProductID_ = l1PFCand_seed.id();
+  l1PFCandProductID_ = l1PFCandProductID;
+}
+
+void TallinnL1PFTauBuilder::setVertex(const reco::Vertex* primaryVertex)
+{
   primaryVertex_ = primaryVertex;
+}
+ 
+void TallinnL1PFTauBuilder::setL1PFTauSeed(const l1t::PFCandidateRef& l1PFCand_seed)
+{
+  l1PFCand_seed_ = l1PFCand_seed;
+  l1PFTauSeed_eta_ = l1PFCand_seed->eta();
+  l1PFTauSeed_phi_ = l1PFCand_seed->phi();
+}
+ 
+void TallinnL1PFTauBuilder::setL1PFTauSeed(const reco::PFJetRef& l1PFJet_seed)
+{
+  l1PFJet_seed_ = l1PFJet_seed;
+  l1PFTauSeed_eta_ = l1PFJet_seed->eta();
+  l1PFTauSeed_phi_ = l1PFJet_seed->phi();
 }
 
 void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands)
@@ -206,7 +223,8 @@ void TallinnL1PFTauBuilder::buildL1PFTau()
   }
   l1PFTau_.setP4(l1PFTau_p4);
 
-  l1PFTau_.seedChargedPFCand_ = l1PFTauSeed_;
+  l1PFTau_.seedChargedPFCand_ = l1PFCand_seed_;
+  l1PFTau_.seedPFJet_ = l1PFJet_seed_;
   if ( signalChargedHadrons_.size() >= 1 )
   {
     l1PFTau_.leadChargedPFCand_ = signalChargedHadrons_[0];
@@ -265,21 +283,38 @@ void TallinnL1PFTauBuilder::buildL1PFTau()
   const double offsetNeutralIso = 0.;
   l1PFTau_.sumCombinedIso_ = sumChargedIso + weightNeutralIso*(sumNeutralIso - offsetNeutralIso);
 
-  if ( l1PFTau_.sumChargedIso() < 50. ) 
+  if ( l1PFTau_.sumChargedIso() < 20.0 ) 
   {
     l1PFTau_.passVLooseIso_ = true;
   }
-  if ( l1PFTau_.sumChargedIso() < 20. ) 
+  if ( l1PFTau_.sumChargedIso() < 10.0 ) 
   {
     l1PFTau_.passLooseIso_ = true;
   }
-  if ( l1PFTau_.sumChargedIso() < 10. ) 
+  if ( l1PFTau_.sumChargedIso() <  5.0 ) 
   {
     l1PFTau_.passMediumIso_ = true;
   }
-  if ( l1PFTau_.sumChargedIso() <  5. ) 
+  if ( l1PFTau_.sumChargedIso() <  2.5 ) 
   {
     l1PFTau_.passTightIso_ = true;
+  }
+
+  if ( l1PFTau_.sumChargedIso() < 0.40*l1PFTau_.pt() ) 
+  {
+    l1PFTau_.passVLooseRelIso_ = true;
+  }
+  if ( l1PFTau_.sumChargedIso() < 0.20*l1PFTau_.pt() ) 
+  {
+    l1PFTau_.passLooseRelIso_ = true;
+  }
+  if ( l1PFTau_.sumChargedIso() < 0.10*l1PFTau_.pt() ) 
+  {
+    l1PFTau_.passMediumRelIso_ = true;
+  }
+  if ( l1PFTau_.sumChargedIso() < 0.05*l1PFTau_.pt() ) 
+  {
+    l1PFTau_.passTightRelIso_ = true;
   }
 }
 

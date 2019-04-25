@@ -82,8 +82,11 @@ process.endjob_step = cms.EndPath(process.endOfProcess)
 
 process.load("L1Trigger.Phase2L1ParticleFlow.pfTracksFromL1Tracks_cfi")
 
-from L1Trigger.Phase2L1ParticleFlow.l1ParticleFlow_cff import *
+process.load("L1Trigger.Phase2L1ParticleFlow.l1ParticleFlow_cff")
 process.l1pf = cms.Path(process.pfTracksFromL1Tracks+process.l1ParticleFlow)
+
+process.load("L1Trigger.Phase2L1ParticleFlow.l1pfJetMet_cff")
+process.l1pfJets = cms.Path(process.l1PFJets)
 
 ############################################################
 # Tallinn L1 Tau object
@@ -110,7 +113,7 @@ process.out = cms.OutputModule(
 process.outpath = cms.EndPath(process.out)
 
 # Schedule definition
-process.schedule = cms.Schedule(process.EcalEBtp_step,process.L1TrackTrigger_step,process.L1simulation_step,process.l1pf,process.L1PFTaus,process.outpath,process.endjob_step)
+process.schedule = cms.Schedule(process.EcalEBtp_step,process.L1TrackTrigger_step,process.L1simulation_step,process.l1pf,process.l1pfJets,process.L1PFTaus,process.outpath,process.endjob_step)
 
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)
