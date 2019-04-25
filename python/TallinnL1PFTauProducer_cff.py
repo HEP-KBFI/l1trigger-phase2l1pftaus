@@ -58,5 +58,5 @@ TallinnL1PFTauProducer = cms.EDProducer("TallinnL1PFTauProducer",
       min_pt = cms.double(0.)
     )              
   ),                                        
-  debug = cms.untracked.bool(False),                                    
+  debug = cms.untracked.bool(False)                                  
 )
