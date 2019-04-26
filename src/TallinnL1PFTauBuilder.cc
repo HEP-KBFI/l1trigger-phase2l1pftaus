@@ -219,20 +219,21 @@ void TallinnL1PFTauBuilder::buildL1PFTau()
   reco::Particle::LorentzVector l1PFTau_p4;
   for ( auto l1PFCand : signalAllL1PFCandidates_ )
   {
-    l1PFTau_p4 += l1PFCand->p4();
+    if ( l1PFCand->id() == l1t::PFCandidate::ChargedHadron ||
+	 l1PFCand->id() == l1t::PFCandidate::Electron      ||
+	 l1PFCand->id() == l1t::PFCandidate::Photon        )
+    {
+      l1PFTau_p4 += l1PFCand->p4();
+      if ( l1PFCand->charge() != 0 && (l1PFTau_.leadChargedPFCand_.isNull() || l1PFCand->pt() > l1PFTau_.leadChargedPFCand_->pt()) ) 
+      {
+        l1PFTau_.leadChargedPFCand_ = l1PFCand;
+      }
+    }
   }
   l1PFTau_.setP4(l1PFTau_p4);
 
   l1PFTau_.seedChargedPFCand_ = l1PFCand_seed_;
   l1PFTau_.seedPFJet_ = l1PFJet_seed_;
-  for ( auto l1PFCand : signalAllL1PFCandidates_ )
-  {
-    if ( l1PFCand->charge() != 0 ) 
-    {
-      l1PFTau_.leadChargedPFCand_ = l1PFCand;
-      break;
-    }
-  }
 
   l1PFTau_.signalAllL1PFCandidates_ = convertToRefVector(signalAllL1PFCandidates_);
   l1PFTau_.signalChargedHadrons_ = convertToRefVector(signalChargedHadrons_);

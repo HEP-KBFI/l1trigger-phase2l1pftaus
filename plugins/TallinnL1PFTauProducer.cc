@@ -170,31 +170,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
     for ( size_t idx = 0; idx < l1PFTauCollection_cleaned->size(); ++idx )
     {
       const l1t::TallinnL1PFTau& l1PFTau = l1PFTauCollection_cleaned->at(idx);
-      std::cout << "tau #" << idx << ": pT = " << l1PFTau.pt()  << ", eta = " << l1PFTau.eta() << ", phi = " << l1PFTau.phi() 
-		<< " (type = " << l1PFTau.tauType() << ")" << std::endl;
-      std::cout << " leadChargedPFCand:";
-      if ( l1PFTau.leadChargedPFCand().isNonnull() ) 
-      {
-	const l1t::PFCandidate& leadChargedPFCand = *l1PFTau.leadChargedPFCand();
-	std::cout << " pT = " << leadChargedPFCand.pt()  << ", eta = " << leadChargedPFCand.eta() << ", phi = " << leadChargedPFCand.phi(); 
-      }
-      else
-      {
-	std::cout << " N/A";
-      }
-      std::cout << std::endl;
-      std::cout << " seed:";
-      if ( l1PFTau.isChargedPFCandSeeded() ) 
-      {
-	std::cout << " chargedPFCand";
-      }
-      else if ( l1PFTau.isPFJetSeeded() ) 
-      {
-	std::cout << " PFJet";
-      }
-      else assert(0);
-      std::cout << std::endl;
-      std::cout << " isolation: charged = " << l1PFTau.sumChargedIso() << ", neutral = " << l1PFTau.sumNeutralIso() << std::endl;
+      std::cout << "TallinnL1PFTau #" << idx << ":" << l1PFTau;
     }
   }
 
