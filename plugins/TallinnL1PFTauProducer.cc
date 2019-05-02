@@ -142,12 +142,12 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
 
   for ( auto l1PFTau : l1PFTauCollection_uncleaned )
   {
-    if ( l1PFTau.pt() > min_PFTau_pt_ && std::fabs(l1PFTau.eta()) < max_PFTau_eta_ &&
-	 l1PFTau.leadChargedPFCand().isNonnull() && 
-	 l1PFTau.leadChargedPFCand()->pt() > min_leadChargedPFCand_pt_ && std::fabs(l1PFTau.leadChargedPFCand()->eta()) < max_leadChargedPFCand_eta_ && 
-	 std::fabs(l1PFTau.leadChargedPFCand()->pfTrack()->vertex().z() - primaryVertex->z()) < max_leadChargedPFCand_dz_ &&
-	 l1PFTau.sumChargedIso() < max_chargedIso_ && l1PFTau.sumChargedIso() < max_chargedRelIso_*l1PFTau.pt() )
-    {
+    //if ( l1PFTau.pt() > min_PFTau_pt_ && std::fabs(l1PFTau.eta()) < max_PFTau_eta_ &&
+    //     l1PFTau.leadChargedPFCand().isNonnull() && 
+    //	   l1PFTau.leadChargedPFCand()->pt() > min_leadChargedPFCand_pt_ && std::fabs(l1PFTau.leadChargedPFCand()->eta()) < max_leadChargedPFCand_eta_ && 
+    //	   std::fabs(l1PFTau.leadChargedPFCand()->pfTrack()->vertex().z() - primaryVertex->z()) < max_leadChargedPFCand_dz_ &&
+    //	   l1PFTau.sumChargedIso() < max_chargedIso_ && l1PFTau.sumChargedIso() < max_chargedRelIso_*l1PFTau.pt() )
+    //{
       bool isOverlap = false;
       for ( auto l1PFTau2 : *l1PFTauCollection_cleaned )
       {
@@ -162,7 +162,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
       {
         l1PFTauCollection_cleaned->push_back(l1PFTau);
       }
-    }
+    //}
   }
   
   if ( debug_ ) 
@@ -170,7 +170,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
     for ( size_t idx = 0; idx < l1PFTauCollection_cleaned->size(); ++idx )
     {
       const l1t::TallinnL1PFTau& l1PFTau = l1PFTauCollection_cleaned->at(idx);
-      std::cout << "TallinnL1PFTau #" << idx << ":" << l1PFTau;
+      std::cout << "TallinnL1PFTau #" << idx << ": " << l1PFTau;
     }
   }
 
