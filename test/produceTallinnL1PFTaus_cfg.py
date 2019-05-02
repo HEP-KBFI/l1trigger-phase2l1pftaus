@@ -89,31 +89,49 @@ process.load("L1Trigger.Phase2L1ParticleFlow.l1pfJetMet_cff")
 process.l1pfJets = cms.Path(process.l1PFJets)
 
 ############################################################
+# Generator-level (visible) hadronic taus
+############################################################
+
+process.load("PhysicsTools.JetMCAlgos.TauGenJets_cfi")
+process.tauGenJets.GenParticles = cms.InputTag("prunedGenParticles")
+
+process.load("PhysicsTools.JetMCAlgos.TauGenJetsDecayModeSelectorAllHadrons_cfi")
+
+process.genTaus = cms.Path(process.tauGenJets + process.tauGenJetsSelectorAllHadrons)
+
+############################################################
 # Tallinn L1 Tau object
 ############################################################
 
 process.load("L1Trigger.TallinnL1PFTaus.TallinnL1PFTauProducer_cff")
 process.TallinnL1PFTauProducer.debug = cms.untracked.bool(True)
-process.TallinnL1PFTauProducer.l1PFCandToken = cms.InputTag("l1pfCandidates","PF")
+#process.TallinnL1PFTauProducer.l1PFCandToken = cms.InputTag("l1pfCandidates:PF")
+process.TallinnL1PFTauProducer.l1PFCandToken = cms.InputTag("l1pfCandidates:Puppi")
 process.L1PFTaus = cms.Path(process.TallinnL1PFTauProducer)
 
-process.out = cms.OutputModule(
-    "PoolOutputModule",
-    fileName = cms.untracked.string( 'NTuple_TallinnL1PFTauProducer.root' ),
+process.out = cms.OutputModule("PoolOutputModule",
+    fileName = cms.untracked.string("NTuple_TallinnL1PFTauProducer.root"),
     outputCommands = cms.untracked.vstring(
         #'keep *_*_*_*',
+        'keep *_TTTracksFromTracklet_*_*',
+        'keep *_VertexProducer_*_*',                              
         'keep *_l1pfCandidates_PF_*',
+        'keep *_l1pfCandidates_Puppi_*',
+        'keep *_l1pfProducer*_z0_*',                           
         'keep *_slimmedTaus_*_*',
+        'keep *_packedPFCandidates_*_*',
         'keep *_offlineSlimmedPrimaryVertices_*_*',
         'keep *_generator_*_*',
         'keep *_caloStage2Digis_*_*',
         'keep *_TallinnL1PFTauProducer_*_*',
-         )
+        'keep *_prunedGenParticles_*_*',
+        'keep *_tauGenJetsSelectorAllHadrons_*_*',
     )
+)
 process.outpath = cms.EndPath(process.out)
 
 # Schedule definition
-process.schedule = cms.Schedule(process.EcalEBtp_step,process.L1TrackTrigger_step,process.L1simulation_step,process.l1pf,process.l1pfJets,process.L1PFTaus,process.outpath,process.endjob_step)
+process.schedule = cms.Schedule(process.EcalEBtp_step,process.L1TrackTrigger_step,process.L1simulation_step,process.l1pf,process.l1pfJets,process.genTaus,process.L1PFTaus,process.outpath,process.endjob_step)
 
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)
@@ -124,12 +142,11 @@ process = customiseEarlyDelete(process)
 # End adding early deletion
 
 # Enable module run-time report
-#process.Timing = cms.Service("Timing",
-#  summaryOnly = cms.untracked.bool(False),
-#  useJobReport = cms.untracked.bool(False)
+#process.options = cms.untracked.PSet(
+#    wantSummary = cms.untracked.bool(True)
 #)
 
-#dump_file = open('dump.py','w')
-#dump_file.write(process.dumpPython())
+dump_file = open('dump.py','w')
+dump_file.write(process.dumpPython())
 
 
