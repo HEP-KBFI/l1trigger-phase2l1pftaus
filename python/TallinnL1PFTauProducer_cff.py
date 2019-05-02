@@ -8,7 +8,7 @@ TallinnL1PFTauProducer = cms.EDProducer("TallinnL1PFTauProducer",
   useChargedPFCandSeeds     = cms.bool(True),                          
   min_seedChargedPFCand_pt  = cms.double(5.),
   max_seedChargedPFCand_eta = cms.double(2.1),
-  max_seedChargedPFCand_dz  = cms.double(0.2),
+  max_seedChargedPFCand_dz  = cms.double(1.e+3),
   usePFJetSeeds             = cms.bool(True),                          
   min_seedPFJet_pt          = cms.double(30.),
   max_seedPFJet_eta         = cms.double(2.1),
@@ -21,25 +21,25 @@ TallinnL1PFTauProducer = cms.EDProducer("TallinnL1PFTauProducer",
   max_PFTau_eta             = cms.double(2.1),                                       
   min_leadChargedPFCand_pt  = cms.double(1.),
   max_leadChargedPFCand_eta = cms.double(2.1),
-  max_leadChargedPFCand_dz  = cms.double(0.2),
+  max_leadChargedPFCand_dz  = cms.double(1.e+3),
   max_chargedIso            = cms.double(1.e+3),
-  max_chargedRelIso         = cms.double(0.3),                                       
+  max_chargedRelIso         = cms.double(1.0),                                       
   deltaR_cleaning           = cms.double(0.4),
   signalQualityCuts = cms.PSet(
     chargedHadron = cms.PSet(
       min_pt = cms.double(0.),
-      max_dz = cms.double(0.2),                                          
+      max_dz = cms.double(1.e+3),                                          
     ),
     neutralHadron = cms.PSet(
       min_pt = cms.double(0.)
     ),                                        
     muon = cms.PSet(
       min_pt = cms.double(0.),
-      max_dz = cms.double(0.2),                                          
+      max_dz = cms.double(1.e+3),                                          
     ),
     electron = cms.PSet(
       min_pt = cms.double(0.),
-      max_dz = cms.double(0.2),                                          
+      max_dz = cms.double(1.e+3),                                          
     ),                                            
     photon = cms.PSet(
       min_pt = cms.double(0.)
@@ -48,18 +48,18 @@ TallinnL1PFTauProducer = cms.EDProducer("TallinnL1PFTauProducer",
   isolationQualityCuts = cms.PSet(
     chargedHadron = cms.PSet(
       min_pt = cms.double(0.),
-      max_dz = cms.double(0.2),                                          
+      max_dz = cms.double(1.e+3),                                          
     ),
     neutralHadron = cms.PSet(
       min_pt = cms.double(0.)
     ),                                        
     muon = cms.PSet(
       min_pt = cms.double(0.),
-      max_dz = cms.double(0.2),                                          
+      max_dz = cms.double(1.e+3),                                          
     ),
     electron = cms.PSet(
       min_pt = cms.double(0.),
-      max_dz = cms.double(0.2),                                          
+      max_dz = cms.double(1.e+3),                                          
     ),                                            
     photon = cms.PSet(
       min_pt = cms.double(0.)
