@@ -15,8 +15,7 @@
 #include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidateFwd.h"    // l1t::PFCandidateCollection, l1t::PFCandidateRef
 #include "DataFormats/JetReco/interface/PFJet.h"                          // reco::PFJet
 #include "DataFormats/JetReco/interface/PFJetCollection.h"                // reco::PFJetCollection, reco::PFJetRef
-#include "DataFormats/VertexReco/interface/Vertex.h"                      // reco::Vertex
-#include "DataFormats/VertexReco/interface/VertexFwd.h"                   // reco::VertexCollection
+#include "DataFormats/L1TVertex/interface/Vertex.h"                       // l1t::Vertex, l1t::VertexCollection
 
 #include <vector>
 
@@ -30,10 +29,13 @@ class TallinnL1PFTauProducer : public edm::EDProducer
   void produce(edm::Event& evt, const edm::EventSetup& es);
 
   TallinnL1PFTauBuilder tauBuilder_;
-
-  edm::EDGetTokenT<l1t::PFCandidateCollection> l1PFCandToken_;
-  edm::EDGetTokenT<reco::PFJetCollection> l1PFJetToken_;
-  edm::EDGetTokenT<reco::VertexCollection> vtxTagToken_;
+  
+  edm::InputTag srcL1PFCands_;
+  edm::EDGetTokenT<l1t::PFCandidateCollection> tokenL1PFCands_;
+  edm::InputTag srcL1PFJets_;
+  edm::EDGetTokenT<reco::PFJetCollection> tokenL1PFJets_;
+  edm::InputTag srcL1Vertices_;
+  edm::EDGetTokenT<l1t::VertexCollection> tokenL1Vertices_;
 
   std::vector<TallinnL1PFTauQualityCut> signalQualityCuts_;
   std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_;
@@ -57,6 +59,8 @@ class TallinnL1PFTauProducer : public edm::EDProducer
 
   double deltaR_cleaning_;
   double deltaR2_cleaning_;
+
+  bool applyPreselection_;
 
   bool debug_;
 };

@@ -18,10 +18,8 @@ process.load('Configuration.EventContent.EventContent_cff')
 process.load('SimGeneral.MixingModule.mixNoPU_cfi')
 process.load('Configuration.Geometry.GeometryExtended2023D17Reco_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
-process.load('Configuration.StandardSequences.SimL1Emulator_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
-process.load('L1Trigger.TrackFindingTracklet.L1TrackletTracks_cff')
 
 process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(100)
@@ -57,36 +55,41 @@ process.configurationMetadata = cms.untracked.PSet(
     version = cms.untracked.string('$Revision: 1.19 $')
 )
 
-
 # Other statements
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, '100X_upgrade2023_realistic_v1', '')
 
+# Sequence, Path and EndPath definitions
+process.productionSequence = cms.Sequence()
 
 process.load('SimCalorimetry.HcalTrigPrimProducers.hcaltpdigi_cff')
 process.load('CalibCalorimetry.CaloTPG.CaloTPGTranscoder_cfi')
 
 process.load('L1Trigger.L1THGCal.hgcalTriggerPrimitives_cff')
-process.hgcl1tpg_step = cms.Path(process.hgcalTriggerPrimitives)
+process.productionSequence += process.hgcalTriggerPrimitives
 
 process.load('SimCalorimetry.EcalEBTrigPrimProducers.ecalEBTriggerPrimitiveDigis_cff')
-process.EcalEBtp_step = cms.Path(process.simEcalEBTriggerPrimitiveDigis)
+process.productionSequence += process.simEcalEBTriggerPrimitiveDigis
 
-process.L1TrackTrigger_step = cms.Path(process.L1TrackletTracksWithAssociators)
+process.load('L1Trigger.TrackFindingTracklet.L1TrackletTracks_cff')
+process.productionSequence += process.L1TrackletTracksWithAssociators
 
+process.load('L1Trigger.VertexFinder.VertexProducer_cff')
 process.VertexProducer.l1TracksInputTag = cms.InputTag("TTTracksFromTracklet", "Level1TTTracks")
 
-# Path and EndPath definitions
-process.L1simulation_step = cms.Path(process.SimL1Emulator)
-process.endjob_step = cms.EndPath(process.endOfProcess)
+process.load('Configuration.StandardSequences.SimL1Emulator_cff')
+process.productionSequence += process.SimL1Emulator
 
 process.load("L1Trigger.Phase2L1ParticleFlow.pfTracksFromL1Tracks_cfi")
+process.productionSequence += process.pfTracksFromL1Tracks
 
 process.load("L1Trigger.Phase2L1ParticleFlow.l1ParticleFlow_cff")
-process.l1pf = cms.Path(process.pfTracksFromL1Tracks+process.l1ParticleFlow)
+process.productionSequence += process.l1ParticleFlow
 
 process.load("L1Trigger.Phase2L1ParticleFlow.l1pfJetMet_cff")
-process.l1pfJets = cms.Path(process.l1PFJets)
+process.productionSequence += process.l1PFJets
+
+
 
 ############################################################
 # Generator-level (visible) hadronic taus
@@ -97,17 +100,22 @@ process.tauGenJets.GenParticles = cms.InputTag("prunedGenParticles")
 
 process.load("PhysicsTools.JetMCAlgos.TauGenJetsDecayModeSelectorAllHadrons_cfi")
 
-process.genTaus = cms.Path(process.tauGenJets + process.tauGenJetsSelectorAllHadrons)
+process.genTaus = cms.Sequence(process.tauGenJets + process.tauGenJetsSelectorAllHadrons)
+process.productionSequence += process.genTaus
 
 ############################################################
 # Tallinn L1 Tau object
 ############################################################
 
-process.load("L1Trigger.TallinnL1PFTaus.TallinnL1PFTauProducer_cff")
-process.TallinnL1PFTauProducer.debug = cms.untracked.bool(True)
-#process.TallinnL1PFTauProducer.l1PFCandToken = cms.InputTag("l1pfCandidates:PF")
-process.TallinnL1PFTauProducer.l1PFCandToken = cms.InputTag("l1pfCandidates:Puppi")
-process.L1PFTaus = cms.Path(process.TallinnL1PFTauProducer)
+process.load("L1Trigger.TallinnL1PFTaus.TallinnL1PFTauProducerPF_cff")
+process.TallinnL1PFTauProducerPF.debug = cms.untracked.bool(False)
+process.productionSequence += process.TallinnL1PFTauProducerPF
+
+process.load("L1Trigger.TallinnL1PFTaus.TallinnL1PFTauProducerPuppi_cff")
+process.TallinnL1PFTauProducerPuppi.debug = cms.untracked.bool(False)
+process.productionSequence += process.TallinnL1PFTauProducerPuppi
+
+process.production_step = cms.Path(process.productionSequence)
 
 process.out = cms.OutputModule("PoolOutputModule",
     fileName = cms.untracked.string("NTuple_TallinnL1PFTauProducer.root"),
@@ -130,8 +138,10 @@ process.out = cms.OutputModule("PoolOutputModule",
 )
 process.outpath = cms.EndPath(process.out)
 
+process.endjob_step = cms.EndPath(process.endOfProcess)
+
 # Schedule definition
-process.schedule = cms.Schedule(process.EcalEBtp_step,process.L1TrackTrigger_step,process.L1simulation_step,process.l1pf,process.l1pfJets,process.genTaus,process.L1PFTaus,process.outpath,process.endjob_step)
+process.schedule = cms.Schedule(process.production_step, process.outpath, process.endjob_step)
 
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)

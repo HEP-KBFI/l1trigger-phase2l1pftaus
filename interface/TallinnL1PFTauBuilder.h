@@ -10,6 +10,7 @@
 #include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidateFwd.h"    // l1t::PFCandidateCollection, l1t::PFCandidateRef
 #include "DataFormats/JetReco/interface/PFJet.h"                          // reco::PFJet
 #include "DataFormats/JetReco/interface/PFJetCollection.h"                // reco::PFJetCollection, reco::PFJetRef
+#include "DataFormats/L1TVertex/interface/Vertex.h"                       // l1t::Vertex
 
 #include <vector>
 
@@ -21,7 +22,7 @@ class TallinnL1PFTauBuilder
   
   void reset();
   void setL1PFCandProductID(const edm::ProductID& l1PFCandProductID);
-  void setVertex(const reco::Vertex* primaryVertex);
+  void setVertex(const l1t::Vertex* primaryVertex);
   void setL1PFTauSeed(const l1t::PFCandidateRef& l1PFCand_seed);
   void setL1PFTauSeed(const reco::PFJetRef& l1PFJet_seed);
   void addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands);
@@ -55,7 +56,7 @@ class TallinnL1PFTauBuilder
   reco::PFJetRef l1PFJet_seed_;
   double l1PFTauSeed_eta_;
   double l1PFTauSeed_phi_;
-  const reco::Vertex* primaryVertex_;
+  const l1t::Vertex* primaryVertex_;
   l1t::TallinnL1PFTau l1PFTau_;
 
   reco::Particle::LorentzVector strip_p4_;

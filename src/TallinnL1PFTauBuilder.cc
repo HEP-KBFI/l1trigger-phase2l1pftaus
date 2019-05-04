@@ -67,7 +67,7 @@ void TallinnL1PFTauBuilder::setL1PFCandProductID(const edm::ProductID& l1PFCandP
   l1PFCandProductID_ = l1PFCandProductID;
 }
 
-void TallinnL1PFTauBuilder::setVertex(const reco::Vertex* primaryVertex)
+void TallinnL1PFTauBuilder::setVertex(const l1t::Vertex* primaryVertex)
 {
   primaryVertex_ = primaryVertex;
 }

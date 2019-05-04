@@ -19,7 +19,7 @@ TallinnL1PFTauQualityCut::TallinnL1PFTauQualityCut(const edm::ParameterSet& cfg)
 TallinnL1PFTauQualityCut::~TallinnL1PFTauQualityCut()
 {}
 
-bool TallinnL1PFTauQualityCut::operator()(const l1t::PFCandidate& pfCand, const reco::Vertex* primaryVertex) const
+bool TallinnL1PFTauQualityCut::operator()(const l1t::PFCandidate& pfCand, const l1t::Vertex* primaryVertex) const
 {
   bool isSelected = false;
   if ( pfCand.id() == pfCandType_ && pfCand.pt() > min_pt_ ) 
@@ -27,7 +27,7 @@ bool TallinnL1PFTauQualityCut::operator()(const l1t::PFCandidate& pfCand, const 
     if ( pfCand.charge() != 0 && primaryVertex )
     {
       l1t::PFTrackRef pfCand_track = pfCand.pfTrack();
-      double dz = std::fabs(pfCand_track->vertex().z() - primaryVertex->z());      
+      double dz = std::fabs(pfCand_track->vertex().z() - primaryVertex->z0());      
       if ( dz < max_dz_ ) 
       {
 	isSelected = true;
@@ -60,7 +60,7 @@ std::vector<TallinnL1PFTauQualityCut> readL1PFTauQualityCuts(const edm::Paramete
   return qualityCuts;
 }
 
-bool isSelected(const std::vector<TallinnL1PFTauQualityCut>& qualityCuts, const l1t::PFCandidate& pfCand, const reco::Vertex* primaryVertex)
+bool isSelected(const std::vector<TallinnL1PFTauQualityCut>& qualityCuts, const l1t::PFCandidate& pfCand, const l1t::Vertex* primaryVertex)
 {
   for ( auto qualityCut : qualityCuts ) 
   {
