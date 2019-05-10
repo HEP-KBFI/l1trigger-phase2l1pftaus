@@ -22,7 +22,7 @@ process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(100)
+    input = cms.untracked.int32(10)
 )
 
 # Input source
@@ -115,6 +115,16 @@ process.load("L1Trigger.TallinnL1PFTaus.TallinnL1PFTauProducerPuppi_cff")
 process.TallinnL1PFTauProducerPuppi.debug = cms.untracked.bool(False)
 process.productionSequence += process.TallinnL1PFTauProducerPuppi
 
+############################################################ 
+# L1 Tau object 
+############################################################ 
+
+process.load("L1Trigger.Phase2L1Taus.L1PFTauProducer_cff")
+process.L1PFTauProducer.debug = cms.untracked.bool(False)
+process.L1PFTauProducer.L1PFObjects = cms.InputTag("l1pfCandidates:PF")
+process.L1PFTauProducer.L1Neutrals = cms.InputTag("l1pfCandidates")
+process.productionSequence += process.L1PFTauProducer
+
 process.production_step = cms.Path(process.productionSequence)
 
 process.out = cms.OutputModule("PoolOutputModule",
@@ -139,6 +149,7 @@ process.out = cms.OutputModule("PoolOutputModule",
         'keep *_generalTracks_*_*',
         'keep *_electronGsfTracks_*_*',
         'keep *_offlineSlimmedPrimaryVertices_*_*',                           
+        'keep *_L1PFTauProducer_*_*',
     )
 )
 process.outpath = cms.EndPath(process.out)
