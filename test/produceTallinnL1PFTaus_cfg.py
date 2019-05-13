@@ -154,7 +154,10 @@ process.production_step = cms.Path(process.productionSequence)
 process.out = cms.OutputModule("PoolOutputModule",
     fileName = cms.untracked.string("NTuple_TallinnL1PFTauProducer.root"),                           
     #fileName = cms.untracked.string("NTuple_TallinnL1PFTauProducer_2019May13.root"),
-    #fileName = cms.untracked.string("NTuple_TallinnL1PFTauProducer_DEBUG.root"),                           
+    #fileName = cms.untracked.string("NTuple_TallinnL1PFTauProducer_DEBUG.root"),
+    SelectEvents = cms.untracked.PSet(
+        SelectEvents = cms.vstring('production_step')
+    ),
     outputCommands = cms.untracked.vstring(
         'drop *_*_*_*',                                 
         'keep *_l1pfCandidates_PF_*',
@@ -178,7 +181,7 @@ process.out = cms.OutputModule("PoolOutputModule",
         'keep *_electronGsfTracks_*_*',
         'keep *_offlineSlimmedPrimaryVertices_*_*',                           
         'keep *_L1PFTauProducer_*_*',
-    )
+    )                           
 )
 process.outpath = cms.EndPath(process.out)
 
