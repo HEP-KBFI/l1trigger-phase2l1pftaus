@@ -22,26 +22,33 @@ process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(10)
+    input = cms.untracked.int32(100)
 )
 
 # Input source
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-        'file:/hdfs/local/sbhowmik/Sample/VBFHToTauTau_M125_14TeV_powheg_pythia8_correctedGridpack/PhaseIIMTDTDRAutumn18MiniAOD-PU200_103X_upgrade2023_realistic_v2-v1/MINIAODSIM/556D067D-7601-BD4D-A168-88D0A67428DB.root', 
-        ),
+        #'file:/hdfs/local/sbhowmik/Sample/VBFHToTauTau_M125_14TeV_powheg_pythia8_correctedGridpack/PhaseIIMTDTDRAutumn18MiniAOD-PU200_103X_upgrade2023_realistic_v2-v1/MINIAODSIM/556D067D-7601-BD4D-A168-88D0A67428DB.root',
+        'file:/home/veelken/CMSSW_10_5_0_pre1/src/L1Trigger/TallinnL1PFTaus/samples/556D067D-7601-BD4D-A168-88D0A67428DB.root', 
+    ),
     secondaryFileNames = cms.untracked.vstring(
-        'file:/hdfs/local/sbhowmik/Sample/VBFHToTauTau_M125_14TeV_powheg_pythia8_correctedGridpack/PhaseIIMTDTDRAutumn18MiniAOD-PU200_103X_upgrade2023_realistic_v2-v1/FEVT/B12B9398-9DBA-D442-855D-BFEBCE64D269.root',
-        'file:/hdfs/local/sbhowmik/Sample/VBFHToTauTau_M125_14TeV_powheg_pythia8_correctedGridpack/PhaseIIMTDTDRAutumn18MiniAOD-PU200_103X_upgrade2023_realistic_v2-v1/FEVT/5AB0C82F-3846-4D45-A27F-A356DEB6C5DE.root', 
-        ),
+        #'file:/hdfs/local/sbhowmik/Sample/VBFHToTauTau_M125_14TeV_powheg_pythia8_correctedGridpack/PhaseIIMTDTDRAutumn18MiniAOD-PU200_103X_upgrade2023_realistic_v2-v1/FEVT/B12B9398-9DBA-D442-855D-BFEBCE64D269.root',
+        #'file:/hdfs/local/sbhowmik/Sample/VBFHToTauTau_M125_14TeV_powheg_pythia8_correctedGridpack/PhaseIIMTDTDRAutumn18MiniAOD-PU200_103X_upgrade2023_realistic_v2-v1/FEVT/5AB0C82F-3846-4D45-A27F-A356DEB6C5DE.root',
+        'file:/home/veelken/CMSSW_10_5_0_pre1/src/L1Trigger/TallinnL1PFTaus/samples/B12B9398-9DBA-D442-855D-BFEBCE64D269.root',
+        'file:/home/veelken/CMSSW_10_5_0_pre1/src/L1Trigger/TallinnL1PFTaus/samples/5AB0C82F-3846-4D45-A27F-A356DEB6C5DE.root',
+    ),
     inputCommands = cms.untracked.vstring("keep *", 
         "drop l1tHGCalTowerMapBXVector_hgcalTriggerPrimitiveDigiProducer_towerMap_HLT",
         "drop l1tEMTFHit2016Extras_simEmtfDigis_CSC_HLT",
         "drop l1tEMTFHit2016Extras_simEmtfDigis_RPC_HLT",
         "drop l1tEMTFHit2016s_simEmtfDigis__HLT",
         "drop l1tEMTFTrack2016Extras_simEmtfDigis__HLT",
-        "drop l1tEMTFTrack2016s_simEmtfDigis__HLT")
-     #skipEvents = cms.untracked.uint32(80)
+        "drop l1tEMTFTrack2016s_simEmtfDigis__HLT"
+    ),
+    #skipEvents = cms.untracked.uint32(80),
+    #eventsToProcess = cms.untracked.VEventRange(
+    #    '1:364:36355'
+    #)         
 )
 
 process.options = cms.untracked.PSet(
@@ -89,8 +96,6 @@ process.productionSequence += process.l1ParticleFlow
 process.load("L1Trigger.Phase2L1ParticleFlow.l1pfJetMet_cff")
 process.productionSequence += process.l1PFJets
 
-
-
 ############################################################
 # Generator-level (visible) hadronic taus
 ############################################################
@@ -107,13 +112,32 @@ process.productionSequence += process.genTaus
 # Tallinn L1 Tau object
 ############################################################
 
-process.load("L1Trigger.TallinnL1PFTaus.TallinnL1PFTauProducerPF_cff")
-process.TallinnL1PFTauProducerPF.debug = cms.untracked.bool(False)
-process.productionSequence += process.TallinnL1PFTauProducerPF
+from L1Trigger.TallinnL1PFTaus.TallinnL1PFTauProducerPF_cff import TallinnL1PFTauProducerPF
+process.TallinnL1PFTauProducerWithStripsPF = TallinnL1PFTauProducerPF.clone(
+    useStrips = cms.bool(True),
+    debug = cms.untracked.bool(False)
+    #debug = cms.untracked.bool(True)
+)
+process.productionSequence += process.TallinnL1PFTauProducerWithStripsPF
 
-process.load("L1Trigger.TallinnL1PFTaus.TallinnL1PFTauProducerPuppi_cff")
-process.TallinnL1PFTauProducerPuppi.debug = cms.untracked.bool(False)
-process.productionSequence += process.TallinnL1PFTauProducerPuppi
+process.TallinnL1PFTauProducerWithoutStripsPF = TallinnL1PFTauProducerPF.clone(
+    useStrips = cms.bool(False),
+    debug = cms.untracked.bool(False)
+)
+process.productionSequence += process.TallinnL1PFTauProducerWithoutStripsPF
+
+from L1Trigger.TallinnL1PFTaus.TallinnL1PFTauProducerPuppi_cff import TallinnL1PFTauProducerPuppi
+process.TallinnL1PFTauProducerWithStripsPuppi = TallinnL1PFTauProducerPuppi.clone(
+    useStrips = cms.bool(True),
+    debug = cms.untracked.bool(False)
+)
+process.productionSequence += process.TallinnL1PFTauProducerWithStripsPuppi
+
+process.TallinnL1PFTauProducerWithoutStripsPuppi = TallinnL1PFTauProducerPuppi.clone(
+    useStrips = cms.bool(False),
+    debug = cms.untracked.bool(False)
+)
+process.productionSequence += process.TallinnL1PFTauProducerWithoutStripsPuppi
 
 ############################################################ 
 # L1 Tau object 
@@ -128,7 +152,9 @@ process.productionSequence += process.L1PFTauProducer
 process.production_step = cms.Path(process.productionSequence)
 
 process.out = cms.OutputModule("PoolOutputModule",
-    fileName = cms.untracked.string("NTuple_TallinnL1PFTauProducer.root"),
+    fileName = cms.untracked.string("NTuple_TallinnL1PFTauProducer.root"),                           
+    #fileName = cms.untracked.string("NTuple_TallinnL1PFTauProducer_2019May13.root"),
+    #fileName = cms.untracked.string("NTuple_TallinnL1PFTauProducer_DEBUG.root"),                           
     outputCommands = cms.untracked.vstring(
         'drop *_*_*_*',                                 
         'keep *_l1pfCandidates_PF_*',
@@ -141,8 +167,10 @@ process.out = cms.OutputModule("PoolOutputModule",
         'keep *_packedPFCandidates_*_*',
         'keep *_generator_*_*',
         'keep *_caloStage2Digis_*_*',
-        'keep *_TallinnL1PFTauProducerPF_*_*',
-        'keep *_TallinnL1PFTauProducerPuppi_*_*',                           
+        'keep *_TallinnL1PFTauProducerWithStripsPF_*_*',                           
+        'keep *_TallinnL1PFTauProducerWithoutStripsPF_*_*',
+        'keep *_TallinnL1PFTauProducerWithStripsPuppi_*_*',                            
+        'keep *_TallinnL1PFTauProducerWithoutStripsPuppi_*_*',                           
         'keep *_prunedGenParticles_*_*',
         'keep *_tauGenJetsSelectorAllHadrons_*_*',
         'keep *_particleFlow_*_*',
