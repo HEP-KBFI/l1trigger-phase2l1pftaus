@@ -17,6 +17,7 @@
 #include "DataFormats/JetReco/interface/PFJetCollection.h"                // reco::PFJetCollection, reco::PFJetRef
 #include "DataFormats/L1TVertex/interface/Vertex.h"                       // l1t::Vertex, l1t::VertexCollection
 
+#include <string>
 #include <vector>
 
 class TallinnL1PFTauProducer : public edm::EDProducer 
@@ -28,7 +29,9 @@ class TallinnL1PFTauProducer : public edm::EDProducer
  private:
   void produce(edm::Event& evt, const edm::EventSetup& es);
 
-  TallinnL1PFTauBuilder tauBuilder_;
+  std::string moduleLabel_;
+
+  TallinnL1PFTauBuilder* tauBuilder_;
   
   edm::InputTag srcL1PFCands_;
   edm::EDGetTokenT<l1t::PFCandidateCollection> tokenL1PFCands_;

@@ -3,7 +3,8 @@
 #include "FWCore/Utilities/interface/InputTag.h"
 
 TallinnL1PFTauProducer::TallinnL1PFTauProducer(const edm::ParameterSet& cfg) 
-  : tauBuilder_(cfg)
+  : moduleLabel_(cfg.getParameter<std::string>("@module_label"))
+  , tauBuilder_(nullptr)
   , useChargedPFCandSeeds_(cfg.getParameter<bool>("useChargedPFCandSeeds"))
   , min_seedChargedPFCand_pt_(cfg.getParameter<double>("min_seedChargedPFCand_pt"))
   , max_seedChargedPFCand_eta_(cfg.getParameter<double>("max_seedChargedPFCand_eta"))
@@ -22,6 +23,13 @@ TallinnL1PFTauProducer::TallinnL1PFTauProducer(const edm::ParameterSet& cfg)
   , applyPreselection_(cfg.getParameter<bool>("applyPreselection"))
   , debug_(cfg.getUntrackedParameter<bool>("debug", false))
 {
+  if ( debug_ )
+  {
+    std::cout << "<TallinnL1PFTauProducer::TallinnL1PFTauProducer (moduleLabel = " << moduleLabel_ << ")>:" << std::endl;
+  }
+
+  tauBuilder_ = new TallinnL1PFTauBuilder(cfg);
+
   srcL1PFCands_ = cfg.getParameter<edm::InputTag>("srcL1PFCands");
   tokenL1PFCands_ = consumes<l1t::PFCandidateCollection>(srcL1PFCands_);
   srcL1PFJets_ = cfg.getParameter<edm::InputTag>("srcL1PFJets");
@@ -46,7 +54,9 @@ TallinnL1PFTauProducer::TallinnL1PFTauProducer(const edm::ParameterSet& cfg)
 }
 
 TallinnL1PFTauProducer::~TallinnL1PFTauProducer()
-{}
+{
+  delete tauBuilder_;
+}
 
 namespace
 {
@@ -72,12 +82,21 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
   edm::Handle<l1t::PFCandidateCollection> l1PFCands;
   evt.getByToken(tokenL1PFCands_, l1PFCands);
 
-  const l1t::Vertex* primaryVertex = nullptr;
+  l1t::VertexRef primaryVertex;
   if ( srcL1Vertices_.label() != "" ) 
   {
     edm::Handle<l1t::VertexCollection> vertices;
     evt.getByToken(tokenL1Vertices_, vertices);
-    if ( vertices->size() > 0 ) primaryVertex = &vertices->at(0);
+    if ( vertices->size() > 0 ) primaryVertex = l1t::VertexRef(vertices, 0);
+  }
+
+  if ( debug_ ) 
+  {
+    std::cout << "BEFORE selection:" << std::endl;
+    for ( auto l1PFCand : *l1PFCands )
+    {
+      printPFCand(std::cout, l1PFCand, primaryVertex);
+    }
   }
 
   // build collection of selected PFCandidates
@@ -85,8 +104,8 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
   size_t numL1PFCands = l1PFCands->size();
   for ( size_t idxL1PFCand = 0; idxL1PFCand < numL1PFCands; ++idxL1PFCand ) {
     l1t::PFCandidateRef l1PFCand(l1PFCands, idxL1PFCand);
-    if ( isSelected(signalQualityCuts_,    *l1PFCand, primaryVertex) || 
-	 isSelected(isolationQualityCuts_, *l1PFCand, primaryVertex) ) 
+    if ( isSelected(signalQualityCuts_,    *l1PFCand, primaryVertex.get()) || 
+	 isSelected(isolationQualityCuts_, *l1PFCand, primaryVertex.get()) ) 
     {
       l1PFCands_selected.push_back(l1PFCand);
     }
@@ -94,6 +113,15 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
 
   // sort PFCandidate collection by decreasing pT
   std::sort(l1PFCands_selected.begin(), l1PFCands_selected.end(), isHigherPt_pfCandRef);
+
+  if ( debug_ ) 
+  {
+    std::cout << "AFTER selection:" << std::endl;
+    for ( auto l1PFCand : l1PFCands_selected )
+    {
+      printPFCand(std::cout, *l1PFCand, primaryVertex);
+    }
+  }
 
   l1t::TallinnL1PFTauCollection l1PFTauCollection_uncleaned;
 
@@ -104,7 +132,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
       if ( l1PFCand->charge() != 0 && l1PFCand->pt() > min_seedChargedPFCand_pt_ && fabs(l1PFCand->eta()) < max_seedChargedPFCand_eta_ )
       {
         bool isFromPrimaryVertex = false;
-        if ( primaryVertex ) 
+        if ( primaryVertex.get() ) 
         {
           l1t::PFTrackRef l1PFTrack = l1PFCand->pfTrack();
           double dz = std::fabs(l1PFTrack->vertex().z() - primaryVertex->z0());
@@ -119,13 +147,14 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
         }
         if ( isFromPrimaryVertex ) 
         {
-	  tauBuilder_.reset();
-          tauBuilder_.setL1PFCandProductID(l1PFCands.id());
-	  tauBuilder_.setVertex(primaryVertex);
-	  tauBuilder_.setL1PFTauSeed(l1PFCand);
-	  tauBuilder_.addL1PFCandidates(l1PFCands_selected);
-	  tauBuilder_.buildL1PFTau();
-	  l1PFTauCollection_uncleaned.push_back(tauBuilder_.getL1PFTau());
+	  tauBuilder_->reset();
+          tauBuilder_->setL1PFCandProductID(l1PFCands.id());
+	  tauBuilder_->setVertex(primaryVertex);
+	  tauBuilder_->setL1PFTauSeed(l1PFCand);
+	  tauBuilder_->addL1PFCandidates(l1PFCands_selected);
+	  tauBuilder_->buildL1PFTau();
+	  l1t::TallinnL1PFTau l1PFTau = tauBuilder_->getL1PFTau();
+	  if ( l1PFTau.pt() > 1. ) l1PFTauCollection_uncleaned.push_back(l1PFTau);
         }
       }
     }
@@ -136,18 +165,19 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
     edm::Handle<reco::PFJetCollection> l1PFJets;
     evt.getByToken(tokenL1PFJets_, l1PFJets);
 
-    size_t numL1PFJets = l1PFJets->size();
+    size_t numL1PFJets = l1PFJets->size();    
     for ( size_t idxL1PFJet = 0; idxL1PFJet < numL1PFJets; ++idxL1PFJet ) {
       reco::PFJetRef l1PFJet(l1PFJets, idxL1PFJet);
       if ( l1PFJet->pt() > min_seedPFJet_pt_ && std::fabs(l1PFJet->eta()) < max_seedPFJet_eta_ )
       {
-	tauBuilder_.reset();
-	tauBuilder_.setL1PFCandProductID(l1PFCands.id());
-	tauBuilder_.setVertex(primaryVertex);
-	tauBuilder_.setL1PFTauSeed(l1PFJet);
-	tauBuilder_.addL1PFCandidates(l1PFCands_selected);
-	tauBuilder_.buildL1PFTau();
-	l1PFTauCollection_uncleaned.push_back(tauBuilder_.getL1PFTau());
+	tauBuilder_->reset();
+	tauBuilder_->setL1PFCandProductID(l1PFCands.id());
+	tauBuilder_->setVertex(primaryVertex);
+	tauBuilder_->setL1PFTauSeed(l1PFJet);
+	tauBuilder_->addL1PFCandidates(l1PFCands_selected);
+	tauBuilder_->buildL1PFTau();
+	l1t::TallinnL1PFTau l1PFTau = tauBuilder_->getL1PFTau();
+	if ( l1PFTau.pt() > 1. ) l1PFTauCollection_uncleaned.push_back(l1PFTau);
       }
     }
   }
@@ -155,13 +185,25 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
   // sort PFTau candidate collection by decreasing pT
   std::sort(l1PFTauCollection_uncleaned.begin(), l1PFTauCollection_uncleaned.end(), isHigherPt_pfTau);
 
+  if ( debug_ ) 
+  {
+    std::cout << "BEFORE cleaning:" << std::endl;
+    for ( size_t idx = 0; idx < l1PFTauCollection_uncleaned.size(); ++idx )
+    {
+      const l1t::TallinnL1PFTau& l1PFTau = l1PFTauCollection_uncleaned.at(idx);
+      std::cout << "TallinnL1PFTau #" << idx << ": " << l1PFTau;
+    }
+  }
+
   for ( auto l1PFTau : l1PFTauCollection_uncleaned )
   {
     if (  applyPreselection_ && 
          !(l1PFTau.pt() > min_PFTau_pt_ && std::fabs(l1PFTau.eta()) < max_PFTau_eta_ &&
            l1PFTau.leadChargedPFCand().isNonnull() && 
 	   l1PFTau.leadChargedPFCand()->pt() > min_leadChargedPFCand_pt_ && std::fabs(l1PFTau.leadChargedPFCand()->eta()) < max_leadChargedPFCand_eta_ && 
-           (srcL1Vertices_.label() == "" || (primaryVertex && std::fabs(l1PFTau.leadChargedPFCand()->pfTrack()->vertex().z() - primaryVertex->z0()) < max_leadChargedPFCand_dz_)) &&
+           (srcL1Vertices_.label() == "" || 
+	    (primaryVertex.isNonnull() && l1PFTau.leadChargedPFCand()->pfTrack().isNonnull() &&
+	     std::fabs(l1PFTau.leadChargedPFCand()->pfTrack()->vertex().z() - primaryVertex->z0()) < max_leadChargedPFCand_dz_)) &&
            l1PFTau.sumChargedIso() < max_chargedIso_ && l1PFTau.sumChargedIso() < max_chargedRelIso_*l1PFTau.pt()) ) continue;
 
     bool isOverlap = false;
@@ -182,6 +224,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
   
   if ( debug_ ) 
   {
+    std::cout << "AFTER cleaning:" << std::endl;
     for ( size_t idx = 0; idx < l1PFTauCollection_cleaned->size(); ++idx )
     {
       const l1t::TallinnL1PFTau& l1PFTau = l1PFTauCollection_cleaned->at(idx);

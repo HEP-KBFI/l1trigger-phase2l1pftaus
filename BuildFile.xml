@@ -1,18 +1,16 @@
+<use   name="DataFormats/Candidate"/>
+<use   name="DataFormats/EcalDigi"/>
+<use   name="DataFormats/L1CaloTrigger"/>
+<use   name="DataFormats/L1TrackTrigger"/>
+<use   name="DataFormats/L1Trigger"/>
+<use   name="DataFormats/L1TVertex"/>
+<use   name="DataFormats/Phase2L1CaloTrig"/>
+<use   name="DataFormats/TallinnL1PFTaus"/>
 <use   name="FWCore/Framework"/>
 <use   name="FWCore/ParameterSet"/>
 <use   name="FWCore/Utilities"/>
-<use   name="DataFormats/L1Trigger"/>
-<use   name="DataFormats/L1CaloTrigger"/>
-<use   name="DataFormats/Phase2L1CaloTrig"/>
-<use   name="DataFormats/EcalDigi"/>
-<use   name="DataFormats/L1TrackTrigger"/>
-<use   name="Geometry/HcalTowerAlgo"/>
-<use   name="root"/>
 <use   name="CLHEP"/>
-<use   name="DataFormats/PatCandidates"/>
-<use   name="DataFormats/Candidate"/>
-<use   name="DataFormats/L1TVertex"/>
-<use   name="DataFormats/TallinnL1PFTaus"/>
+<use   name="root"/>
 <Flags CPPDEFINES="CMSSW_VERSION=$(shell echo ${CMSSW_VERSION}|sed -e s/CMSSW_// -e s/_//g -e s/patch\.//)"/>
 <export>
   <lib   name="1"/>

@@ -10,7 +10,9 @@
 #include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidateFwd.h"    // l1t::PFCandidateCollection, l1t::PFCandidateRef
 #include "DataFormats/JetReco/interface/PFJet.h"                          // reco::PFJet
 #include "DataFormats/JetReco/interface/PFJetCollection.h"                // reco::PFJetCollection, reco::PFJetRef
-#include "DataFormats/L1TVertex/interface/Vertex.h"                       // l1t::Vertex
+#include "DataFormats/L1TVertex/interface/Vertex.h"                       // l1t::VertexRef
+
+#include <TFormula.h> // TFormula
 
 #include <vector>
 
@@ -22,7 +24,7 @@ class TallinnL1PFTauBuilder
   
   void reset();
   void setL1PFCandProductID(const edm::ProductID& l1PFCandProductID);
-  void setVertex(const l1t::Vertex* primaryVertex);
+  void setVertex(const l1t::VertexRef& primaryVertex);
   void setL1PFTauSeed(const l1t::PFCandidateRef& l1PFCand_seed);
   void setL1PFTauSeed(const reco::PFJetRef& l1PFJet_seed);
   void addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands);
@@ -37,11 +39,14 @@ class TallinnL1PFTauBuilder
   bool isWithinStrip(const l1t::PFCandidate& l1PFCand);
   bool isWithinIsolationCone(const l1t::PFCandidate& l1PFCand);
 
+  TFormula* signalConeSizeFormula_;
+  static int signalConeSizeFormula_instance_counter_;
   double signalConeSize_;
   double signalConeSize2_;
   double min_signalConeSize_;
   double max_signalConeSize_;
 
+  bool useStrips_;
   double stripSize_eta_;
   double stripSize_phi_;
 
@@ -52,11 +57,13 @@ class TallinnL1PFTauBuilder
   std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_;
 
   edm::ProductID l1PFCandProductID_;
+  bool isPFCandSeeded_;
   l1t::PFCandidateRef l1PFCand_seed_;
+  bool isPFJetSeeded_;
   reco::PFJetRef l1PFJet_seed_;
   double l1PFTauSeed_eta_;
   double l1PFTauSeed_phi_;
-  const l1t::Vertex* primaryVertex_;
+  l1t::VertexRef primaryVertex_;
   l1t::TallinnL1PFTau l1PFTau_;
 
   reco::Particle::LorentzVector strip_p4_;
@@ -81,6 +88,8 @@ class TallinnL1PFTauBuilder
   std::vector<l1t::PFCandidateRef> sumNeutralHadrons_;
   std::vector<l1t::PFCandidateRef> sumPhotons_;
   std::vector<l1t::PFCandidateRef> sumMuons_;
+
+  bool debug_;
 };
 
 #endif

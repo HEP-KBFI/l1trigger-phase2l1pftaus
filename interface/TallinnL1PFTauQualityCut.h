@@ -25,9 +25,11 @@ class TallinnL1PFTauQualityCut
 
   float_t min_pt_;
   float_t max_dz_;
+
+  bool debug_;
 };
 
-std::vector<TallinnL1PFTauQualityCut> readL1PFTauQualityCuts(const edm::ParameterSet& cfg);
+std::vector<TallinnL1PFTauQualityCut> readL1PFTauQualityCuts(const edm::ParameterSet& cfg, bool debug = false);
 
 bool isSelected(const std::vector<TallinnL1PFTauQualityCut>& qualityCuts, const l1t::PFCandidate& pfCand, const l1t::Vertex* primaryVertex);
 

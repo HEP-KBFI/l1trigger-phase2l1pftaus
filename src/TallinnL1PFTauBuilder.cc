@@ -1,25 +1,57 @@
 #include "L1Trigger/TallinnL1PFTaus/interface/TallinnL1PFTauBuilder.h"
 
-#include "L1Trigger/TallinnL1PFTaus/interface/TallinnL1PFTauQualityCut.h"
+#include "FWCore/Utilities/interface/Exception.h"                         // cms::Exception
 
+#include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"      // reco::PFCandidate
+#include "DataFormats/ParticleFlowCandidate/interface/PFCandidateFwd.h"   // reco::PFCandidatePtr
+#include "DataFormats/Math/interface/deltaR.h"                            // reco::deltaR
+
+#include "L1Trigger/TallinnL1PFTaus/interface/TallinnL1PFTauQualityCut.h" // TallinnL1PFTauQualityCut
+
+#include <TString.h> // TString, Form()
+
+#include <string>    // std::string 
 #include <algorithm> // std::max(), std::sort()
 
+int TallinnL1PFTauBuilder::signalConeSizeFormula_instance_counter_ = 0;
+
 TallinnL1PFTauBuilder::TallinnL1PFTauBuilder(const edm::ParameterSet& cfg)
-  : min_signalConeSize_(cfg.getParameter<double>("min_signalConeSize"))
+  : signalConeSizeFormula_(nullptr)
+  , min_signalConeSize_(cfg.getParameter<double>("min_signalConeSize"))
   , max_signalConeSize_(cfg.getParameter<double>("max_signalConeSize"))
+  , useStrips_(cfg.getParameter<bool>("useStrips"))
   , stripSize_eta_(cfg.getParameter<double>("stripSize_eta"))
   , stripSize_phi_(cfg.getParameter<double>("stripSize_phi"))
   , isolationConeSize_(cfg.getParameter<double>("isolationConeSize"))
-  , primaryVertex_(nullptr)
+  , debug_(cfg.getUntrackedParameter<bool>("debug", false))
 {
+  std::string signalConeSizeFormulaName = Form("signalConeSizeFormula%i", signalConeSizeFormula_instance_counter_);
+  ++signalConeSizeFormula_instance_counter_;
+  std::string signalConeSizeFormula_original = cfg.getParameter<std::string>("signalConeSize");
+  TString signalConeSizeFormula_modified = signalConeSizeFormula_original.data();
+  signalConeSizeFormula_modified.ReplaceAll("pt", "x");
+  signalConeSizeFormula_ = new TFormula(signalConeSizeFormulaName.data(), signalConeSizeFormula_modified.Data(), false, false);
+  if ( !(signalConeSizeFormula_->Compile() == 0) )
+  {
+    throw cms::Exception("TallinnL1PFTauBuilder")
+      << "Invalid Configuration parameter 'signalConeSize' = '" << signalConeSizeFormula_original << "' !!\n";
+  }
   assert(max_signalConeSize_ >= min_signalConeSize_);
 
   isolationConeSize2_ = isolationConeSize_*isolationConeSize_;
 
+  if ( debug_ )
+  {
+    std::cout << "setting Quality cuts for signal PFCands:" << std::endl;
+  }
   edm::ParameterSet cfg_signalQualityCuts = cfg.getParameter<edm::ParameterSet>("signalQualityCuts");
-  signalQualityCuts_ = readL1PFTauQualityCuts(cfg_signalQualityCuts);
+  signalQualityCuts_ = readL1PFTauQualityCuts(cfg_signalQualityCuts, debug_);
+  if ( debug_ )
+  {
+    std::cout << "setting Quality cuts for isolation PFCands:" << std::endl;
+  }
   edm::ParameterSet cfg_isolationQualityCuts = cfg.getParameter<edm::ParameterSet>("isolationQualityCuts");
-  isolationQualityCuts_ = readL1PFTauQualityCuts(cfg_isolationQualityCuts);
+  isolationQualityCuts_ = readL1PFTauQualityCuts(cfg_isolationQualityCuts, debug_);
 }
 
 TallinnL1PFTauBuilder::~TallinnL1PFTauBuilder()
@@ -31,11 +63,13 @@ void TallinnL1PFTauBuilder::reset()
   signalConeSize2_ = 0.;
 
   l1PFCandProductID_ = edm::ProductID();
+  isPFCandSeeded_ = false;
   l1PFCand_seed_ = l1t::PFCandidateRef();
+  isPFJetSeeded_ = false;
   l1PFJet_seed_ = reco::PFJetRef();
   l1PFTauSeed_eta_ = 0.;
   l1PFTauSeed_phi_ = 0.;
-  primaryVertex_ = nullptr;
+  primaryVertex_ = l1t::VertexRef();
   l1PFTau_ = l1t::TallinnL1PFTau();
 
   strip_p4_ = reco::Particle::LorentzVector(0.,0.,0.,0.);
@@ -67,27 +101,66 @@ void TallinnL1PFTauBuilder::setL1PFCandProductID(const edm::ProductID& l1PFCandP
   l1PFCandProductID_ = l1PFCandProductID;
 }
 
-void TallinnL1PFTauBuilder::setVertex(const l1t::Vertex* primaryVertex)
+void TallinnL1PFTauBuilder::setVertex(const l1t::VertexRef& primaryVertex)
 {
   primaryVertex_ = primaryVertex;
 }
  
 void TallinnL1PFTauBuilder::setL1PFTauSeed(const l1t::PFCandidateRef& l1PFCand_seed)
 {
+  if ( debug_ )
+  {
+    std::cout << "<TallinnL1PFTauBuilder::setL1PFTauSeed>:" << std::endl;
+    std::cout << "seeding TallinnL1PFTau with ChargedPFCand:";
+    printPFCand(std::cout, *l1PFCand_seed, primaryVertex_);
+  }
+
   l1PFCand_seed_ = l1PFCand_seed;
   l1PFTauSeed_eta_ = l1PFCand_seed->eta();
   l1PFTauSeed_phi_ = l1PFCand_seed->phi();
+  isPFCandSeeded_ = true;
 }
  
 void TallinnL1PFTauBuilder::setL1PFTauSeed(const reco::PFJetRef& l1PFJet_seed)
 {
+  if ( debug_ )
+  {
+    std::cout << "<TallinnL1PFTauBuilder::setL1PFTauSeed>:" << std::endl;
+    std::cout << "seeding TallinnL1PFTau with PFJet:";
+    std::cout << " pT = " << l1PFJet_seed->pt()  << ", eta = " << l1PFJet_seed->eta() << ", phi = " << l1PFJet_seed->phi() << std::endl;
+  }
+
   l1PFJet_seed_ = l1PFJet_seed;
-  l1PFTauSeed_eta_ = l1PFJet_seed->eta();
-  l1PFTauSeed_phi_ = l1PFJet_seed->phi();
+  reco::Candidate::LorentzVector l1PFTauSeed_p4;
+  std::vector<const reco::Candidate*> constituents = l1PFJet_seed->getJetConstituentsQuick();
+  for ( auto constituent : constituents ) 
+  {
+    const l1t::PFCandidate* l1PFCand = dynamic_cast<const l1t::PFCandidate*>(constituent);
+    if ( !l1PFCand )
+    {
+      throw cms::Exception("TallinnL1PFTauBuilder")
+	<< "PFJet was not built from l1t::PFCandidates !!\n";
+    }
+    if ( l1PFCand->id() == l1t::PFCandidate::ChargedHadron ||
+	 l1PFCand->id() == l1t::PFCandidate::Electron      ||
+	 l1PFCand->id() == l1t::PFCandidate::Photon        ||
+	 l1PFCand->id() == l1t::PFCandidate::Muon          ) l1PFTauSeed_p4 += l1PFCand->p4();
+  }
+  if ( l1PFTauSeed_p4.pt() > 1. )
+  {
+    l1PFTauSeed_eta_ = l1PFTauSeed_p4.eta();
+    l1PFTauSeed_phi_ = l1PFTauSeed_p4.phi();
+    isPFJetSeeded_ = true;
+  }
 }
 
 void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands)
 {
+  if ( debug_ )
+  {
+    std::cout << "<TallinnL1PFTauBuilder::addL1PFCandidates>:" << std::endl;
+  }
+
   for ( auto l1PFCand : l1PFCands ) 
   {
     if( !isWithinIsolationCone(*l1PFCand) )
@@ -120,22 +193,27 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidate
   {
     sumAllL1PFCandidates_pt += l1PFCand->pt();
   }
-  signalConeSize_ = 3.0/std::max(1., sumAllL1PFCandidates_pt);
+  signalConeSize_ = signalConeSizeFormula_->Eval(sumAllL1PFCandidates_pt);
   if ( signalConeSize_ < min_signalConeSize_ ) signalConeSize_ = min_signalConeSize_;
   if ( signalConeSize_ > max_signalConeSize_ ) signalConeSize_ = max_signalConeSize_;
   signalConeSize2_ = signalConeSize_*signalConeSize_;
 
   for ( auto l1PFCand : sumAllL1PFCandidates_ ) 
   {
+    if ( debug_ ) 
+    {
+      printPFCand(std::cout, *l1PFCand, primaryVertex_);
+    }
+
     bool isSignalPFCand = false;
     bool isElectron_or_Photon = l1PFCand->id() == l1t::PFCandidate::Electron || l1PFCand->id() == l1t::PFCandidate::Photon;
     bool isChargedHadron = l1PFCand->id() == l1t::PFCandidate::ChargedHadron;
-    if ( (isWithinSignalCone(*l1PFCand) || (isElectron_or_Photon && isWithinStrip(*l1PFCand))) && !(isChargedHadron && signalChargedHadrons_.size() > 3) ) 
+    if ( (isWithinSignalCone(*l1PFCand) || (useStrips_ && isElectron_or_Photon && isWithinStrip(*l1PFCand))) && !(isChargedHadron && signalChargedHadrons_.size() > 3) ) 
     { 
       isSignalPFCand = true;
     }
-
-    if ( isSignalPFCand && isSelected(signalQualityCuts_, *l1PFCand, primaryVertex_) )
+    bool passesSignalQualityCuts = isSelected(signalQualityCuts_, *l1PFCand, primaryVertex_.get());
+    if ( isSignalPFCand && passesSignalQualityCuts )
     {
       signalAllL1PFCandidates_.push_back(l1PFCand);  
       if ( l1PFCand->id() == l1t::PFCandidate::ChargedHadron ) 
@@ -161,9 +239,10 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidate
 	signalMuons_.push_back(l1PFCand);
       }
     } 
-
+    
     bool isIsolationPFCand = isWithinIsolationCone(*l1PFCand) && !isSignalPFCand;
-    if ( isIsolationPFCand && isSelected(isolationQualityCuts_, *l1PFCand, primaryVertex_) )
+    bool passesIsolationQualityCuts = isSelected(isolationQualityCuts_, *l1PFCand, primaryVertex_.get());
+    if ( isIsolationPFCand && passesIsolationQualityCuts )
     {
       isoAllL1PFCandidates_.push_back(l1PFCand);
       if ( l1PFCand->id() == l1t::PFCandidate::ChargedHadron ) 
@@ -187,23 +266,36 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidate
 	isoMuons_.push_back(l1PFCand);
       }
     }
+
+    if ( debug_ )
+    {
+      std::cout << "dR = " << reco::deltaR(l1PFCand->eta(), l1PFCand->phi(), l1PFTauSeed_eta_, l1PFTauSeed_phi_) << ":"
+		<< " isSignalPFCand = " << isSignalPFCand << " (passesSignalQualityCuts = " << passesSignalQualityCuts << "),"
+		<< " isIsolationPFCand = " << isIsolationPFCand << " (passesIsolationQualityCuts = " << passesIsolationQualityCuts << ")" << std::endl;
+    }
   }
 }
 
 bool TallinnL1PFTauBuilder::isWithinSignalCone(const l1t::PFCandidate& l1PFCand)
 {
-  double deltaEta = l1PFCand.eta() - l1PFTauSeed_eta_;
-  double deltaPhi = l1PFCand.phi() - l1PFTauSeed_phi_;
-  if ( (deltaEta*deltaEta + deltaPhi*deltaPhi) < signalConeSize2_ ) return true;
-  else return false;
+  if ( isPFCandSeeded_ || isPFJetSeeded_ )
+  {
+    double deltaEta = l1PFCand.eta() - l1PFTauSeed_eta_;
+    double deltaPhi = l1PFCand.phi() - l1PFTauSeed_phi_;
+    if ( (deltaEta*deltaEta + deltaPhi*deltaPhi) < signalConeSize2_ ) return true;
+  }
+  return false;
 }
 
 bool TallinnL1PFTauBuilder::isWithinStrip(const l1t::PFCandidate& l1PFCand)
 {
-  double deltaEta = l1PFCand.eta() - l1PFTauSeed_eta_;
-  double deltaPhi = l1PFCand.phi() - l1PFTauSeed_phi_;
-  if ( deltaEta < stripSize_eta_ && deltaPhi < stripSize_phi_ ) return true;
-  else return false;
+  if ( isPFCandSeeded_ || isPFJetSeeded_ )
+  {
+    double deltaEta = l1PFCand.eta() - l1PFTauSeed_eta_;
+    double deltaPhi = l1PFCand.phi() - l1PFTauSeed_phi_;
+    if ( deltaEta < stripSize_eta_ && deltaPhi < stripSize_phi_ ) return true;
+  }
+  return false;
 }
 
 bool TallinnL1PFTauBuilder::isWithinIsolationCone(const l1t::PFCandidate& l1PFCand)
@@ -255,6 +347,8 @@ void TallinnL1PFTauBuilder::buildL1PFTau()
   l1PFTau_.sumNeutralHadrons_ = convertToRefVector(sumNeutralHadrons_);
   l1PFTau_.sumPhotons_ = convertToRefVector(sumPhotons_);
   l1PFTau_.sumMuons_ = convertToRefVector(sumMuons_);
+
+  l1PFTau_.primaryVertex_ = primaryVertex_;
 
   if ( l1PFTau_.signalChargedHadrons_.size() > 1 ) 
   { 
