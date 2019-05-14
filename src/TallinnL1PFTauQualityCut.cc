@@ -26,24 +26,18 @@ TallinnL1PFTauQualityCut::~TallinnL1PFTauQualityCut()
 
 bool TallinnL1PFTauQualityCut::operator()(const l1t::PFCandidate& pfCand, const l1t::Vertex* primaryVertex) const
 {
-  bool isSelected = false;
-  if ( pfCand.id() == pfCandType_ && pfCand.pt() > min_pt_ ) 
-  {
+  if ( pfCand.id() == pfCandType_ )
+  {  
+    if ( !(pfCand.pt() > min_pt_) ) return false;
+
     if ( pfCand.charge() != 0 && primaryVertex )
     {
       l1t::PFTrackRef pfCand_track = pfCand.pfTrack();
       double dz = std::fabs(pfCand_track->vertex().z() - primaryVertex->z0());      
-      if ( dz < max_dz_ ) 
-      {
-	isSelected = true;
-      }
-    } 
-    else 
-    {
-      isSelected = true;
+      if ( !(dz < max_dz_) ) return false;
     }
   }
-  return isSelected;
+  return true;
 }
 
 TallinnL1PFTauQualityCut readL1PFTauQualityCut(const edm::ParameterSet& cfg, const std::string& pfCandType, bool debug)
