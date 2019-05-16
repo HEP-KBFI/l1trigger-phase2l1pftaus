@@ -27,7 +27,7 @@ class TallinnL1PFTauBuilder
   void setVertex(const l1t::VertexRef& primaryVertex);
   void setL1PFTauSeed(const l1t::PFCandidateRef& l1PFCand_seed);
   void setL1PFTauSeed(const reco::PFJetRef& l1PFJet_seed);
-  void addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands);
+  void addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands_primary, const std::vector<l1t::PFCandidateRef>& l1PFCands_pileup);
   void buildL1PFTau();
 
   l1t::TallinnL1PFTau getL1PFTau() const { return l1PFTau_; }
@@ -54,7 +54,8 @@ class TallinnL1PFTauBuilder
   double isolationConeSize2_;
 
   std::vector<TallinnL1PFTauQualityCut> signalQualityCuts_;
-  std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_;
+  std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_primary_;
+  std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_pileup_;
 
   edm::ProductID l1PFCandProductID_;
   bool isPFCandSeeded_;
@@ -88,6 +89,8 @@ class TallinnL1PFTauBuilder
   std::vector<l1t::PFCandidateRef> sumNeutralHadrons_;
   std::vector<l1t::PFCandidateRef> sumPhotons_;
   std::vector<l1t::PFCandidateRef> sumMuons_;
+
+  double sumChargedIsoPileup_;
 
   bool debug_;
 };

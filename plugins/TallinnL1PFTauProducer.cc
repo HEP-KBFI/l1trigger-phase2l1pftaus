@@ -46,9 +46,10 @@ TallinnL1PFTauProducer::TallinnL1PFTauProducer(const edm::ParameterSet& cfg)
   deltaR2_cleaning_ = deltaR_cleaning_*deltaR_cleaning_;
 
   edm::ParameterSet cfg_signalQualityCuts = cfg.getParameter<edm::ParameterSet>("signalQualityCuts");
-  signalQualityCuts_ = readL1PFTauQualityCuts(cfg_signalQualityCuts);
+  signalQualityCuts_ = readL1PFTauQualityCuts(cfg_signalQualityCuts, "primary");
   edm::ParameterSet cfg_isolationQualityCuts = cfg.getParameter<edm::ParameterSet>("isolationQualityCuts");
-  isolationQualityCuts_ = readL1PFTauQualityCuts(cfg_isolationQualityCuts);
+  isolationQualityCuts_primary_ = readL1PFTauQualityCuts(cfg_isolationQualityCuts, "primary");
+  isolationQualityCuts_pileup_  = readL1PFTauQualityCuts(cfg_isolationQualityCuts, "pileup");
 
   produces<l1t::TallinnL1PFTauCollection>();
 }
@@ -100,24 +101,30 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
   }
 
   // build collection of selected PFCandidates
-  std::vector<l1t::PFCandidateRef> l1PFCands_selected;
+  std::vector<l1t::PFCandidateRef> selectedL1PFCands_primary;
+  std::vector<l1t::PFCandidateRef> selectedL1PFCands_pileup;
   size_t numL1PFCands = l1PFCands->size();
   for ( size_t idxL1PFCand = 0; idxL1PFCand < numL1PFCands; ++idxL1PFCand ) {
     l1t::PFCandidateRef l1PFCand(l1PFCands, idxL1PFCand);
-    if ( isSelected(signalQualityCuts_,    *l1PFCand, primaryVertex.get()) || 
-	 isSelected(isolationQualityCuts_, *l1PFCand, primaryVertex.get()) ) 
+    if ( isSelected(signalQualityCuts_,            *l1PFCand, primaryVertex.get()) || 
+	 isSelected(isolationQualityCuts_primary_, *l1PFCand, primaryVertex.get()) ) 
     {
-      l1PFCands_selected.push_back(l1PFCand);
+      selectedL1PFCands_primary.push_back(l1PFCand);
+    }
+    if ( isSelected(isolationQualityCuts_pileup_,  *l1PFCand, primaryVertex.get()) ) 
+    {
+      selectedL1PFCands_pileup.push_back(l1PFCand);
     }
   }
 
   // sort PFCandidate collection by decreasing pT
-  std::sort(l1PFCands_selected.begin(), l1PFCands_selected.end(), isHigherPt_pfCandRef);
+  std::sort(selectedL1PFCands_primary.begin(), selectedL1PFCands_primary.end(), isHigherPt_pfCandRef);
+  std::sort(selectedL1PFCands_pileup.begin(),  selectedL1PFCands_pileup.end(),  isHigherPt_pfCandRef);
 
   if ( debug_ ) 
   {
-    std::cout << "AFTER selection:" << std::endl;
-    for ( auto l1PFCand : l1PFCands_selected )
+    std::cout << "AFTER selection (primary):" << std::endl;
+    for ( auto l1PFCand : selectedL1PFCands_primary )
     {
       printPFCand(std::cout, *l1PFCand, primaryVertex);
     }
@@ -127,7 +134,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
 
   if ( useChargedPFCandSeeds_ ) 
   {
-    for ( auto l1PFCand : l1PFCands_selected ) 
+    for ( auto l1PFCand : selectedL1PFCands_primary ) 
     {
       if ( l1PFCand->charge() != 0 && l1PFCand->pt() > min_seedChargedPFCand_pt_ && fabs(l1PFCand->eta()) < max_seedChargedPFCand_eta_ )
       {
@@ -151,7 +158,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
           tauBuilder_->setL1PFCandProductID(l1PFCands.id());
 	  tauBuilder_->setVertex(primaryVertex);
 	  tauBuilder_->setL1PFTauSeed(l1PFCand);
-	  tauBuilder_->addL1PFCandidates(l1PFCands_selected);
+	  tauBuilder_->addL1PFCandidates(selectedL1PFCands_primary, selectedL1PFCands_pileup);
 	  tauBuilder_->buildL1PFTau();
 	  l1t::TallinnL1PFTau l1PFTau = tauBuilder_->getL1PFTau();
 	  if ( l1PFTau.pt() > 1. ) l1PFTauCollection_uncleaned.push_back(l1PFTau);
@@ -174,7 +181,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
 	tauBuilder_->setL1PFCandProductID(l1PFCands.id());
 	tauBuilder_->setVertex(primaryVertex);
 	tauBuilder_->setL1PFTauSeed(l1PFJet);
-	tauBuilder_->addL1PFCandidates(l1PFCands_selected);
+	tauBuilder_->addL1PFCandidates(selectedL1PFCands_primary, selectedL1PFCands_pileup);
 	tauBuilder_->buildL1PFTau();
 	l1t::TallinnL1PFTau l1PFTau = tauBuilder_->getL1PFTau();
 	if ( l1PFTau.pt() > 1. ) l1PFTauCollection_uncleaned.push_back(l1PFTau);

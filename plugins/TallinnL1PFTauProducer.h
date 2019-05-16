@@ -41,7 +41,8 @@ class TallinnL1PFTauProducer : public edm::EDProducer
   edm::EDGetTokenT<l1t::VertexCollection> tokenL1Vertices_;
 
   std::vector<TallinnL1PFTauQualityCut> signalQualityCuts_;
-  std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_;
+  std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_primary_;
+  std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_pileup_;
 
   bool useChargedPFCandSeeds_;
   double min_seedChargedPFCand_pt_;

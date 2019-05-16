@@ -45,13 +45,14 @@ TallinnL1PFTauBuilder::TallinnL1PFTauBuilder(const edm::ParameterSet& cfg)
     std::cout << "setting Quality cuts for signal PFCands:" << std::endl;
   }
   edm::ParameterSet cfg_signalQualityCuts = cfg.getParameter<edm::ParameterSet>("signalQualityCuts");
-  signalQualityCuts_ = readL1PFTauQualityCuts(cfg_signalQualityCuts, debug_);
+  signalQualityCuts_ = readL1PFTauQualityCuts(cfg_signalQualityCuts, "primary", debug_);
   if ( debug_ )
   {
     std::cout << "setting Quality cuts for isolation PFCands:" << std::endl;
   }
   edm::ParameterSet cfg_isolationQualityCuts = cfg.getParameter<edm::ParameterSet>("isolationQualityCuts");
-  isolationQualityCuts_ = readL1PFTauQualityCuts(cfg_isolationQualityCuts, debug_);
+  isolationQualityCuts_primary_ = readL1PFTauQualityCuts(cfg_isolationQualityCuts, "primary", debug_);
+  isolationQualityCuts_pileup_  = readL1PFTauQualityCuts(cfg_isolationQualityCuts, "pileup",  debug_);
 }
 
 TallinnL1PFTauBuilder::~TallinnL1PFTauBuilder()
@@ -94,6 +95,8 @@ void TallinnL1PFTauBuilder::reset()
   sumNeutralHadrons_.clear();
   sumPhotons_.clear();
   sumMuons_.clear();
+
+  sumChargedIsoPileup_ = 0.;
 }
 
 void TallinnL1PFTauBuilder::setL1PFCandProductID(const edm::ProductID& l1PFCandProductID)
@@ -154,14 +157,14 @@ void TallinnL1PFTauBuilder::setL1PFTauSeed(const reco::PFJetRef& l1PFJet_seed)
   }
 }
 
-void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands)
+void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands_primary, const std::vector<l1t::PFCandidateRef>& l1PFCands_pileup)
 {
   if ( debug_ )
   {
     std::cout << "<TallinnL1PFTauBuilder::addL1PFCandidates>:" << std::endl;
   }
 
-  for ( auto l1PFCand : l1PFCands ) 
+  for ( auto l1PFCand : l1PFCands_primary ) 
   {
     if( !isWithinIsolationCone(*l1PFCand) )
       continue;
@@ -241,7 +244,7 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidate
     } 
     
     bool isIsolationPFCand = isWithinIsolationCone(*l1PFCand) && !isSignalPFCand;
-    bool passesIsolationQualityCuts = isSelected(isolationQualityCuts_, *l1PFCand, primaryVertex_.get());
+    bool passesIsolationQualityCuts = isSelected(isolationQualityCuts_primary_, *l1PFCand, primaryVertex_.get());
     if ( isIsolationPFCand && passesIsolationQualityCuts )
     {
       isoAllL1PFCandidates_.push_back(l1PFCand);
@@ -272,6 +275,18 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidate
       std::cout << "dR = " << reco::deltaR(l1PFCand->eta(), l1PFCand->phi(), l1PFTauSeed_eta_, l1PFTauSeed_phi_) << ":"
 		<< " isSignalPFCand = " << isSignalPFCand << " (passesSignalQualityCuts = " << passesSignalQualityCuts << "),"
 		<< " isIsolationPFCand = " << isIsolationPFCand << " (passesIsolationQualityCuts = " << passesIsolationQualityCuts << ")" << std::endl;
+    }
+  }
+
+  
+  for ( auto l1PFCand : l1PFCands_pileup ) 
+  {
+    if( !isWithinIsolationCone(*l1PFCand) )
+      continue;
+
+    if ( l1PFCand->charge() != 0 && isSelected(isolationQualityCuts_pileup_, *l1PFCand, primaryVertex_.get()) )
+    {
+      sumChargedIsoPileup_ += l1PFCand->pt();
     }
   }
 }
@@ -381,6 +396,7 @@ void TallinnL1PFTauBuilder::buildL1PFTau()
   const double weightNeutralIso = 1.;
   const double offsetNeutralIso = 0.;
   l1PFTau_.sumCombinedIso_ = sumChargedIso + weightNeutralIso*(sumNeutralIso - offsetNeutralIso);
+  l1PFTau_.sumChargedIsoPileup_ = sumChargedIsoPileup_;
 
   if ( l1PFTau_.sumChargedIso() < 20.0 ) 
   {
