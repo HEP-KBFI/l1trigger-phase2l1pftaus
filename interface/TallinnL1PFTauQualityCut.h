@@ -18,13 +18,13 @@ class TallinnL1PFTauQualityCut
   ~TallinnL1PFTauQualityCut();
     
   /// returns true (false) if PFCandidate passes (fails) quality cuts
-  bool operator()(const l1t::PFCandidate& pfCand, const l1t::Vertex* primaryVertex) const;
+  bool operator()(const l1t::PFCandidate& pfCand, float_t primaryVertex_z) const;
 
  private:
   l1t::PFCandidate::Kind pfCandType_;
 
-  enum { kPrimary, kPileup };
-  int primary_or_pileup_; // flag to invert dz cut in order to compute charged isolation from pileup for delta-beta corrections
+  enum { kDisabled, kEnabled_primary, kEnabled_pileup };
+  int dzCut_; // flag to invert dz cut in order to compute charged isolation from pileup for delta-beta corrections
 
   float_t min_pt_;
   float_t max_dz_;
@@ -32,8 +32,8 @@ class TallinnL1PFTauQualityCut
   bool debug_;
 };
 
-std::vector<TallinnL1PFTauQualityCut> readL1PFTauQualityCuts(const edm::ParameterSet& cfg, const std::string& primary_or_pileup, bool debug = false);
+std::vector<TallinnL1PFTauQualityCut> readL1PFTauQualityCuts(const edm::ParameterSet& cfg, const std::string& dzCut, bool debug = false);
 
-bool isSelected(const std::vector<TallinnL1PFTauQualityCut>& qualityCuts, const l1t::PFCandidate& pfCand, const l1t::Vertex* primaryVertex);
+bool isSelected(const std::vector<TallinnL1PFTauQualityCut>& qualityCuts, const l1t::PFCandidate& pfCand, float_t primaryVertex_z);
 
 #endif

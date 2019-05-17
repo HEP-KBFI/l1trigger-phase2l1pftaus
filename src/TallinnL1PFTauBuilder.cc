@@ -45,14 +45,16 @@ TallinnL1PFTauBuilder::TallinnL1PFTauBuilder(const edm::ParameterSet& cfg)
     std::cout << "setting Quality cuts for signal PFCands:" << std::endl;
   }
   edm::ParameterSet cfg_signalQualityCuts = cfg.getParameter<edm::ParameterSet>("signalQualityCuts");
-  signalQualityCuts_ = readL1PFTauQualityCuts(cfg_signalQualityCuts, "primary", debug_);
+  signalQualityCuts_dzCut_disabled_           = readL1PFTauQualityCuts(cfg_signalQualityCuts,    "disabled",        debug_);
+  signalQualityCuts_dzCut_enabled_primary_    = readL1PFTauQualityCuts(cfg_signalQualityCuts,    "enabled_primary", debug_);
   if ( debug_ )
   {
     std::cout << "setting Quality cuts for isolation PFCands:" << std::endl;
   }
   edm::ParameterSet cfg_isolationQualityCuts = cfg.getParameter<edm::ParameterSet>("isolationQualityCuts");
-  isolationQualityCuts_primary_ = readL1PFTauQualityCuts(cfg_isolationQualityCuts, "primary", debug_);
-  isolationQualityCuts_pileup_  = readL1PFTauQualityCuts(cfg_isolationQualityCuts, "pileup",  debug_);
+  isolationQualityCuts_dzCut_disabled_        = readL1PFTauQualityCuts(cfg_isolationQualityCuts, "disabled",        debug_);
+  isolationQualityCuts_dzCut_enabled_primary_ = readL1PFTauQualityCuts(cfg_isolationQualityCuts, "enabled_primary", debug_);
+  isolationQualityCuts_dzCut_enabled_pileup_  = readL1PFTauQualityCuts(cfg_isolationQualityCuts, "enabled_pileup",  debug_);
 }
 
 TallinnL1PFTauBuilder::~TallinnL1PFTauBuilder()
@@ -70,6 +72,7 @@ void TallinnL1PFTauBuilder::reset()
   l1PFJet_seed_ = reco::PFJetRef();
   l1PFTauSeed_eta_ = 0.;
   l1PFTauSeed_phi_ = 0.;
+  l1PFTauSeed_zVtx_ = 0.;
   primaryVertex_ = l1t::VertexRef();
   l1PFTau_ = l1t::TallinnL1PFTau();
 
@@ -121,7 +124,11 @@ void TallinnL1PFTauBuilder::setL1PFTauSeed(const l1t::PFCandidateRef& l1PFCand_s
   l1PFCand_seed_ = l1PFCand_seed;
   l1PFTauSeed_eta_ = l1PFCand_seed->eta();
   l1PFTauSeed_phi_ = l1PFCand_seed->phi();
-  isPFCandSeeded_ = true;
+  if ( l1PFCand_seed->charge() != 0 && l1PFCand_seed->pfTrack().isNonnull() )
+  {
+    l1PFTauSeed_zVtx_ = l1PFCand_seed->pfTrack()->vertex().z();
+    isPFCandSeeded_ = true;
+  }
 }
  
 void TallinnL1PFTauBuilder::setL1PFTauSeed(const reco::PFJetRef& l1PFJet_seed)
@@ -135,6 +142,9 @@ void TallinnL1PFTauBuilder::setL1PFTauSeed(const reco::PFJetRef& l1PFJet_seed)
 
   l1PFJet_seed_ = l1PFJet_seed;
   reco::Candidate::LorentzVector l1PFTauSeed_p4;
+  float l1PFTauSeed_zVtx = 0.;
+  bool l1PFTauSeed_hasVtx = false;
+  float max_chargedPFCand_pt = -1.;
   std::vector<const reco::Candidate*> constituents = l1PFJet_seed->getJetConstituentsQuick();
   for ( auto constituent : constituents ) 
   {
@@ -147,26 +157,41 @@ void TallinnL1PFTauBuilder::setL1PFTauSeed(const reco::PFJetRef& l1PFJet_seed)
     if ( l1PFCand->id() == l1t::PFCandidate::ChargedHadron ||
 	 l1PFCand->id() == l1t::PFCandidate::Electron      ||
 	 l1PFCand->id() == l1t::PFCandidate::Photon        ||
-	 l1PFCand->id() == l1t::PFCandidate::Muon          ) l1PFTauSeed_p4 += l1PFCand->p4();
+	 l1PFCand->id() == l1t::PFCandidate::Muon          ) 
+    {
+      l1PFTauSeed_p4 += l1PFCand->p4();
+      if ( l1PFCand->charge() != 0 && l1PFCand->pfTrack().isNonnull() && l1PFCand->pt() > max_chargedPFCand_pt )
+      {
+	l1PFTauSeed_zVtx = l1PFCand->pfTrack()->vertex().z();
+	l1PFTauSeed_hasVtx = true;
+	max_chargedPFCand_pt = l1PFCand->pt();
+      }
+    }  
   }
-  if ( l1PFTauSeed_p4.pt() > 1. )
+  if ( l1PFTauSeed_p4.pt() > 1. && l1PFTauSeed_hasVtx )
   {
-    l1PFTauSeed_eta_ = l1PFTauSeed_p4.eta();
-    l1PFTauSeed_phi_ = l1PFTauSeed_p4.phi();
+    l1PFTauSeed_eta_  = l1PFTauSeed_p4.eta();
+    l1PFTauSeed_phi_  = l1PFTauSeed_p4.phi();
+    l1PFTauSeed_zVtx_ = l1PFTauSeed_zVtx; 
     isPFJetSeeded_ = true;
   }
 }
 
-void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands_primary, const std::vector<l1t::PFCandidateRef>& l1PFCands_pileup)
+void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands)
 {
   if ( debug_ )
   {
     std::cout << "<TallinnL1PFTauBuilder::addL1PFCandidates>:" << std::endl;
   }
 
-  for ( auto l1PFCand : l1PFCands_primary ) 
+  // do not build tau candidates for which no reference z-position exists,
+  // as in this case charged PFCands originating from the primary (hard-scatter) interaction 
+  // cannot be distinguished from charged PFCands originating from pileup
+  if ( !(isPFCandSeeded_ || isPFJetSeeded_) ) return; 
+
+  for ( auto l1PFCand : l1PFCands ) 
   {
-    if( !isWithinIsolationCone(*l1PFCand) )
+    if ( !isWithinIsolationCone(*l1PFCand) )
       continue;
     sumAllL1PFCandidates_.push_back(l1PFCand);
     if ( l1PFCand->id() == l1t::PFCandidate::ChargedHadron ) 
@@ -215,7 +240,7 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidate
     { 
       isSignalPFCand = true;
     }
-    bool passesSignalQualityCuts = isSelected(signalQualityCuts_, *l1PFCand, primaryVertex_.get());
+    bool passesSignalQualityCuts = isSelected(signalQualityCuts_dzCut_enabled_primary_, *l1PFCand, l1PFTauSeed_zVtx_);
     if ( isSignalPFCand && passesSignalQualityCuts )
     {
       signalAllL1PFCandidates_.push_back(l1PFCand);  
@@ -244,7 +269,7 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidate
     } 
     
     bool isIsolationPFCand = isWithinIsolationCone(*l1PFCand) && !isSignalPFCand;
-    bool passesIsolationQualityCuts = isSelected(isolationQualityCuts_primary_, *l1PFCand, primaryVertex_.get());
+    bool passesIsolationQualityCuts = isSelected(isolationQualityCuts_dzCut_enabled_primary_, *l1PFCand, l1PFTauSeed_zVtx_);
     if ( isIsolationPFCand && passesIsolationQualityCuts )
     {
       isoAllL1PFCandidates_.push_back(l1PFCand);
@@ -279,12 +304,12 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidate
   }
 
   
-  for ( auto l1PFCand : l1PFCands_pileup ) 
+  for ( auto l1PFCand : l1PFCands ) 
   {
     if( !isWithinIsolationCone(*l1PFCand) )
       continue;
 
-    if ( l1PFCand->charge() != 0 && isSelected(isolationQualityCuts_pileup_, *l1PFCand, primaryVertex_.get()) )
+    if ( l1PFCand->charge() != 0 && isSelected(isolationQualityCuts_dzCut_enabled_pileup_, *l1PFCand, l1PFTauSeed_zVtx_) )
     {
       sumChargedIsoPileup_ += l1PFCand->pt();
     }

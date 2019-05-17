@@ -109,38 +109,45 @@ process.genTaus = cms.Sequence(process.tauGenJets + process.tauGenJetsSelectorAl
 process.productionSequence += process.genTaus
 
 ############################################################
-# Tallinn L1 Tau object
+# produce Tallinn L1 Tau objects
 ############################################################
 
 from L1Trigger.TallinnL1PFTaus.TallinnL1PFTauProducerPF_cff import TallinnL1PFTauProducerPF
-process.TallinnL1PFTauProducerWithStripsPF = TallinnL1PFTauProducerPF.clone(
-    useStrips = cms.bool(True),
-    debug = cms.untracked.bool(False)
-    #debug = cms.untracked.bool(True)
-)
-process.productionSequence += process.TallinnL1PFTauProducerWithStripsPF
-
-process.TallinnL1PFTauProducerWithoutStripsPF = TallinnL1PFTauProducerPF.clone(
-    useStrips = cms.bool(False),
-    debug = cms.untracked.bool(False)
-)
-process.productionSequence += process.TallinnL1PFTauProducerWithoutStripsPF
-
 from L1Trigger.TallinnL1PFTaus.TallinnL1PFTauProducerPuppi_cff import TallinnL1PFTauProducerPuppi
-process.TallinnL1PFTauProducerWithStripsPuppi = TallinnL1PFTauProducerPuppi.clone(
-    useStrips = cms.bool(True),
-    debug = cms.untracked.bool(False)
-)
-process.productionSequence += process.TallinnL1PFTauProducerWithStripsPuppi
+for useStrips in [ True, False ]:
+    for applyPreselection in [ True, False ]:
+        moduleNameBase = "TallinnL1PFTauProducer"
+        if useStrips and applyPreselection:
+            moduleNameBase += "WithStripsAndPreselection"
+        elif useStrips and not applyPreselection:
+            moduleNameBase += "WithStripsWithoutPreselection"
+        elif not useStrips and applyPreselection:
+            moduleNameBase += "WithoutStripsWithPreselection"
+        elif not useStrips and not applyPreselection:
+            moduleNameBase += "WithoutStripsAndPreselection"
+        else:
+            raise ValueError("Invalid Combination of 'useStrips' and 'applyPreselection' Configuration parameters !!")
+        
+        moduleNamePF = moduleNameBase + "PF"
+        modulePF = TallinnL1PFTauProducerPF.clone(
+            useStrips = cms.bool(useStrips),
+            applyPreselection = cms.bool(applyPreselection),
+            debug = cms.untracked.bool(False)
+        )
+        setattr(process, moduleNamePF, modulePF)
+        process.productionSequence += getattr(process, moduleNamePF)
 
-process.TallinnL1PFTauProducerWithoutStripsPuppi = TallinnL1PFTauProducerPuppi.clone(
-    useStrips = cms.bool(False),
-    debug = cms.untracked.bool(False)
-)
-process.productionSequence += process.TallinnL1PFTauProducerWithoutStripsPuppi
+        moduleNamePuppi = moduleNameBase + "Puppi"
+        modulePuppi = TallinnL1PFTauProducerPuppi.clone(
+            useStrips = cms.bool(useStrips),
+            applyPreselection = cms.bool(applyPreselection),
+            debug = cms.untracked.bool(False)
+        )
+        setattr(process, moduleNamePuppi, modulePuppi)
+        process.productionSequence += getattr(process, moduleNamePuppi)
 
 ############################################################ 
-# L1 Tau object 
+# produce L1 Tau objects using Isobel's code 
 ############################################################ 
 
 process.load("L1Trigger.Phase2L1Taus.L1PFTauProducer_cff")
@@ -150,6 +157,10 @@ process.L1PFTauProducer.L1Neutrals = cms.InputTag("l1pfCandidates")
 process.productionSequence += process.L1PFTauProducer
 
 process.production_step = cms.Path(process.productionSequence)
+
+############################################################ 
+# write output file
+############################################################ 
 
 process.out = cms.OutputModule("PoolOutputModule",
     fileName = cms.untracked.string("NTuple_TallinnL1PFTauProducer.root"),                           
@@ -170,10 +181,8 @@ process.out = cms.OutputModule("PoolOutputModule",
         'keep *_packedPFCandidates_*_*',
         'keep *_generator_*_*',
         'keep *_caloStage2Digis_*_*',
-        'keep *_TallinnL1PFTauProducerWithStripsPF_*_*',                           
-        'keep *_TallinnL1PFTauProducerWithoutStripsPF_*_*',
-        'keep *_TallinnL1PFTauProducerWithStripsPuppi_*_*',                            
-        'keep *_TallinnL1PFTauProducerWithoutStripsPuppi_*_*',                           
+        'keep *_TallinnL1PFTauProducer*PF_*_*',                           
+        'keep *_TallinnL1PFTauProducer*Puppi_*_*',                            
         'keep *_prunedGenParticles_*_*',
         'keep *_tauGenJetsSelectorAllHadrons_*_*',
         'keep *_particleFlow_*_*',

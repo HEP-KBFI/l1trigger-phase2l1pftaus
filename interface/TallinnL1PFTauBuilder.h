@@ -27,7 +27,7 @@ class TallinnL1PFTauBuilder
   void setVertex(const l1t::VertexRef& primaryVertex);
   void setL1PFTauSeed(const l1t::PFCandidateRef& l1PFCand_seed);
   void setL1PFTauSeed(const reco::PFJetRef& l1PFJet_seed);
-  void addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands_primary, const std::vector<l1t::PFCandidateRef>& l1PFCands_pileup);
+  void addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands);
   void buildL1PFTau();
 
   l1t::TallinnL1PFTau getL1PFTau() const { return l1PFTau_; }
@@ -53,9 +53,11 @@ class TallinnL1PFTauBuilder
   double isolationConeSize_;
   double isolationConeSize2_;
 
-  std::vector<TallinnL1PFTauQualityCut> signalQualityCuts_;
-  std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_primary_;
-  std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_pileup_;
+  std::vector<TallinnL1PFTauQualityCut> signalQualityCuts_dzCut_disabled_;
+  std::vector<TallinnL1PFTauQualityCut> signalQualityCuts_dzCut_enabled_primary_;
+  std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_dzCut_disabled_;
+  std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_dzCut_enabled_primary_;
+  std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_dzCut_enabled_pileup_;
 
   edm::ProductID l1PFCandProductID_;
   bool isPFCandSeeded_;
@@ -64,6 +66,7 @@ class TallinnL1PFTauBuilder
   reco::PFJetRef l1PFJet_seed_;
   double l1PFTauSeed_eta_;
   double l1PFTauSeed_phi_;
+  double l1PFTauSeed_zVtx_;
   l1t::VertexRef primaryVertex_;
   l1t::TallinnL1PFTau l1PFTau_;
 

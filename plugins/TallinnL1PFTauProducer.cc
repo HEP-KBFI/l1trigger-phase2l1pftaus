@@ -2,6 +2,8 @@
 
 #include "FWCore/Utilities/interface/InputTag.h"
 
+#include <cmath> // std::fabs
+
 TallinnL1PFTauProducer::TallinnL1PFTauProducer(const edm::ParameterSet& cfg) 
   : moduleLabel_(cfg.getParameter<std::string>("@module_label"))
   , tauBuilder_(nullptr)
@@ -46,10 +48,9 @@ TallinnL1PFTauProducer::TallinnL1PFTauProducer(const edm::ParameterSet& cfg)
   deltaR2_cleaning_ = deltaR_cleaning_*deltaR_cleaning_;
 
   edm::ParameterSet cfg_signalQualityCuts = cfg.getParameter<edm::ParameterSet>("signalQualityCuts");
-  signalQualityCuts_ = readL1PFTauQualityCuts(cfg_signalQualityCuts, "primary");
+  signalQualityCuts_dzCut_disabled_ = readL1PFTauQualityCuts(cfg_signalQualityCuts, "disabled");
   edm::ParameterSet cfg_isolationQualityCuts = cfg.getParameter<edm::ParameterSet>("isolationQualityCuts");
-  isolationQualityCuts_primary_ = readL1PFTauQualityCuts(cfg_isolationQualityCuts, "primary");
-  isolationQualityCuts_pileup_  = readL1PFTauQualityCuts(cfg_isolationQualityCuts, "pileup");
+  isolationQualityCuts_dzCut_disabled_ = readL1PFTauQualityCuts(cfg_isolationQualityCuts, "disabled");
 
   produces<l1t::TallinnL1PFTauCollection>();
 }
@@ -84,11 +85,16 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
   evt.getByToken(tokenL1PFCands_, l1PFCands);
 
   l1t::VertexRef primaryVertex;
+  float primaryVertex_z = 0.;
   if ( srcL1Vertices_.label() != "" ) 
   {
     edm::Handle<l1t::VertexCollection> vertices;
     evt.getByToken(tokenL1Vertices_, vertices);
-    if ( vertices->size() > 0 ) primaryVertex = l1t::VertexRef(vertices, 0);
+    if ( vertices->size() > 0 ) 
+    {
+      primaryVertex = l1t::VertexRef(vertices, 0);
+      primaryVertex_z = primaryVertex->z0();
+    }
   }
 
   if ( debug_ ) 
@@ -96,37 +102,38 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
     std::cout << "BEFORE selection:" << std::endl;
     for ( auto l1PFCand : *l1PFCands )
     {
-      printPFCand(std::cout, l1PFCand, primaryVertex);
+      printPFCand(std::cout, l1PFCand, primaryVertex_z);
     }
   }
 
   // build collection of selected PFCandidates
-  std::vector<l1t::PFCandidateRef> selectedL1PFCands_primary;
-  std::vector<l1t::PFCandidateRef> selectedL1PFCands_pileup;
+  std::vector<l1t::PFCandidateRef> selectedL1PFCands_signalQualityCuts;
+  std::vector<l1t::PFCandidateRef> selectedL1PFCands_signal_or_isolationQualityCuts;
   size_t numL1PFCands = l1PFCands->size();
   for ( size_t idxL1PFCand = 0; idxL1PFCand < numL1PFCands; ++idxL1PFCand ) {
     l1t::PFCandidateRef l1PFCand(l1PFCands, idxL1PFCand);
-    if ( isSelected(signalQualityCuts_,            *l1PFCand, primaryVertex.get()) || 
-	 isSelected(isolationQualityCuts_primary_, *l1PFCand, primaryVertex.get()) ) 
+    bool passesSignalQualityCuts    = isSelected(signalQualityCuts_dzCut_disabled_,    *l1PFCand, primaryVertex_z);
+    bool passesIsolationQualityCuts = isSelected(isolationQualityCuts_dzCut_disabled_, *l1PFCand, primaryVertex_z);
+    if ( passesSignalQualityCuts )
     {
-      selectedL1PFCands_primary.push_back(l1PFCand);
+      selectedL1PFCands_signalQualityCuts.push_back(l1PFCand);
     }
-    if ( isSelected(isolationQualityCuts_pileup_,  *l1PFCand, primaryVertex.get()) ) 
+    if ( passesSignalQualityCuts || passesIsolationQualityCuts )
     {
-      selectedL1PFCands_pileup.push_back(l1PFCand);
+      selectedL1PFCands_signal_or_isolationQualityCuts.push_back(l1PFCand);
     }
   }
 
   // sort PFCandidate collection by decreasing pT
-  std::sort(selectedL1PFCands_primary.begin(), selectedL1PFCands_primary.end(), isHigherPt_pfCandRef);
-  std::sort(selectedL1PFCands_pileup.begin(),  selectedL1PFCands_pileup.end(),  isHigherPt_pfCandRef);
+  std::sort(selectedL1PFCands_signalQualityCuts.begin(), selectedL1PFCands_signalQualityCuts.end(), isHigherPt_pfCandRef);
+  std::sort(selectedL1PFCands_signal_or_isolationQualityCuts.begin(),  selectedL1PFCands_signal_or_isolationQualityCuts.end(),  isHigherPt_pfCandRef);
 
   if ( debug_ ) 
   {
-    std::cout << "AFTER selection (primary):" << std::endl;
-    for ( auto l1PFCand : selectedL1PFCands_primary )
+    std::cout << "AFTER selection (signalQualityCuts):" << std::endl;
+    for ( auto l1PFCand : selectedL1PFCands_signalQualityCuts )
     {
-      printPFCand(std::cout, *l1PFCand, primaryVertex);
+      printPFCand(std::cout, *l1PFCand, primaryVertex_z);
     }
   }
 
@@ -134,7 +141,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
 
   if ( useChargedPFCandSeeds_ ) 
   {
-    for ( auto l1PFCand : selectedL1PFCands_primary ) 
+    for ( auto l1PFCand : selectedL1PFCands_signalQualityCuts ) 
     {
       if ( l1PFCand->charge() != 0 && l1PFCand->pt() > min_seedChargedPFCand_pt_ && fabs(l1PFCand->eta()) < max_seedChargedPFCand_eta_ )
       {
@@ -142,7 +149,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
         if ( primaryVertex.get() ) 
         {
           l1t::PFTrackRef l1PFTrack = l1PFCand->pfTrack();
-          double dz = std::fabs(l1PFTrack->vertex().z() - primaryVertex->z0());
+          double dz = std::fabs(l1PFTrack->vertex().z() - primaryVertex_z);
           if ( dz < max_seedChargedPFCand_dz_ ) 
           {
   	    isFromPrimaryVertex = true;
@@ -158,7 +165,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
           tauBuilder_->setL1PFCandProductID(l1PFCands.id());
 	  tauBuilder_->setVertex(primaryVertex);
 	  tauBuilder_->setL1PFTauSeed(l1PFCand);
-	  tauBuilder_->addL1PFCandidates(selectedL1PFCands_primary, selectedL1PFCands_pileup);
+	  tauBuilder_->addL1PFCandidates(selectedL1PFCands_signal_or_isolationQualityCuts);
 	  tauBuilder_->buildL1PFTau();
 	  l1t::TallinnL1PFTau l1PFTau = tauBuilder_->getL1PFTau();
 	  if ( l1PFTau.pt() > 1. ) l1PFTauCollection_uncleaned.push_back(l1PFTau);
@@ -181,7 +188,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
 	tauBuilder_->setL1PFCandProductID(l1PFCands.id());
 	tauBuilder_->setVertex(primaryVertex);
 	tauBuilder_->setL1PFTauSeed(l1PFJet);
-	tauBuilder_->addL1PFCandidates(selectedL1PFCands_primary, selectedL1PFCands_pileup);
+	tauBuilder_->addL1PFCandidates(selectedL1PFCands_signal_or_isolationQualityCuts);
 	tauBuilder_->buildL1PFTau();
 	l1t::TallinnL1PFTau l1PFTau = tauBuilder_->getL1PFTau();
 	if ( l1PFTau.pt() > 1. ) l1PFTauCollection_uncleaned.push_back(l1PFTau);
