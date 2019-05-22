@@ -39,6 +39,8 @@ class TallinnL1PFTauProducer : public edm::EDProducer
   edm::EDGetTokenT<reco::PFJetCollection> tokenL1PFJets_;
   edm::InputTag srcL1Vertices_;
   edm::EDGetTokenT<l1t::VertexCollection> tokenL1Vertices_;
+  edm::InputTag srcRho_;
+  edm::EDGetTokenT<float> tokenRho_;
 
   std::vector<TallinnL1PFTauQualityCut> signalQualityCuts_dzCut_disabled_;
   std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_dzCut_disabled_;

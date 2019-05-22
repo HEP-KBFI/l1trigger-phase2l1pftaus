@@ -6,7 +6,7 @@
 #include "DataFormats/ParticleFlowCandidate/interface/PFCandidateFwd.h"   // reco::PFCandidatePtr
 #include "DataFormats/Math/interface/deltaR.h"                            // reco::deltaR
 
-#include "L1Trigger/TallinnL1PFTaus/interface/TallinnL1PFTauQualityCut.h" // TallinnL1PFTauQualityCut
+#include "L1Trigger/TallinnL1PFTaus/interface/lutAuxFunctions.h"          // openFile(), loadTH1()
 
 #include <TString.h> // TString, Form()
 
@@ -23,6 +23,10 @@ TallinnL1PFTauBuilder::TallinnL1PFTauBuilder(const edm::ParameterSet& cfg)
   , stripSize_eta_(cfg.getParameter<double>("stripSize_eta"))
   , stripSize_phi_(cfg.getParameter<double>("stripSize_phi"))
   , isolationConeSize_(cfg.getParameter<double>("isolationConeSize"))
+  , inputFileName_rhoCorr_(cfg.getParameter<std::string>("inputFileName_rhoCorr"))
+  , inputFile_rhoCorr_(nullptr)
+  , histogramName_rhoCorr_(cfg.getParameter<std::string>("histogramName_rhoCorr"))
+  , histogram_rhoCorr_(nullptr)  
   , debug_(cfg.getUntrackedParameter<bool>("debug", false))
 {
   std::string signalConeSizeFormulaName = Form("signalConeSizeFormula%i", signalConeSizeFormula_instance_counter_);
@@ -55,10 +59,22 @@ TallinnL1PFTauBuilder::TallinnL1PFTauBuilder(const edm::ParameterSet& cfg)
   isolationQualityCuts_dzCut_disabled_        = readL1PFTauQualityCuts(cfg_isolationQualityCuts, "disabled",        debug_);
   isolationQualityCuts_dzCut_enabled_primary_ = readL1PFTauQualityCuts(cfg_isolationQualityCuts, "enabled_primary", debug_);
   isolationQualityCuts_dzCut_enabled_pileup_  = readL1PFTauQualityCuts(cfg_isolationQualityCuts, "enabled_pileup",  debug_);
+
+  if ( inputFileName_rhoCorr_ != "" && histogramName_rhoCorr_ != "" ) 
+  {
+    inputFile_rhoCorr_ = openFile(inputFileName_rhoCorr_);
+    TH1* histogram_rhoCorr_temp = loadTH1(inputFile_rhoCorr_, histogramName_rhoCorr_);
+    std::string histogramName_rhoCorr = Form("%s_cloned", histogram_rhoCorr_->GetName());
+    histogram_rhoCorr_ = (TH1*)histogram_rhoCorr_temp->Clone(histogramName_rhoCorr.data());
+    delete inputFile_rhoCorr_;
+    inputFile_rhoCorr_ = nullptr;
+  }
 }
 
 TallinnL1PFTauBuilder::~TallinnL1PFTauBuilder()
-{}
+{
+  //delete inputFile_rhoCorr_;
+}
 
 void TallinnL1PFTauBuilder::reset()
 {
@@ -100,6 +116,8 @@ void TallinnL1PFTauBuilder::reset()
   sumMuons_.clear();
 
   sumChargedIsoPileup_ = 0.;
+
+  rhoCorr_ = 0.;
 }
 
 void TallinnL1PFTauBuilder::setL1PFCandProductID(const edm::ProductID& l1PFCandProductID)
@@ -314,6 +332,25 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidate
       sumChargedIsoPileup_ += l1PFCand->pt();
     }
   }
+
+  double rhoCorr = 0.;
+    if ( rcRho_.label() != "" ) 
+    {
+      rhoCorr = *rho;
+      int idxBin = histogram_rhoCorr_->FindBin(TMath::Abs(l1Tau->eta()));
+      if ( !(idxBin >= 1 && idxBin <= histogram_rhoCorr_->GetNbins()) )
+      {
+        std::cerr << "Warning in <TallinnL1PFTauIsolationAnalyzer::analyze>:" 
+	  	  << " Failed to compute rho correction for abs(eta) = " << l1Tau->eta() << " --> skipping event !!" << std::endl;
+        return;
+      }
+      rhoCorr *= histogram_rhoCorr_->GetBinContent(idxBin);
+    }
+}
+
+void TallinnL1PFTauBuilder::setRho(double rho)
+{
+  rho_ = rho;
 }
 
 bool TallinnL1PFTauBuilder::isWithinSignalCone(const l1t::PFCandidate& l1PFCand)
@@ -422,6 +459,21 @@ void TallinnL1PFTauBuilder::buildL1PFTau()
   const double offsetNeutralIso = 0.;
   l1PFTau_.sumCombinedIso_ = sumChargedIso + weightNeutralIso*(sumNeutralIso - offsetNeutralIso);
   l1PFTau_.sumChargedIsoPileup_ = sumChargedIsoPileup_;
+
+  if ( histogram_rhoCorr_ )
+  {
+    double rhoCorr = rho_;
+    int idxBin = histogram_rhoCorr_->FindBin(TMath::Abs(l1Tau->eta()));
+    if ( idxBin >= 1 && idxBin <= histogram_rhoCorr_->GetNbins() )
+    {
+      rhoCorr *= histogram_rhoCorr_->GetBinContent(idxBin);
+      l1PFTau_.rhoCorr_ = rhoCorr;
+    } 
+    else
+    {
+      std::cerr << "Warning in <TallinnL1PFTauBuilder>: Failed to compute rho correction for abs(eta) = " << l1PFTau_.eta() << " !!" << std::endl;
+    }
+  }
 
   if ( l1PFTau_.sumChargedIso() < 20.0 ) 
   {

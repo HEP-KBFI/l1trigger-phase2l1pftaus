@@ -4,6 +4,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"                   // edm::ParameterSet
 #include "DataFormats/Provenance/interface/ProductID.h"                   // edm::ProductID
 
+#include "L1Trigger/TallinnL1PFTaus/interface/LocalFileInPath.h"          // LocalFileInPath
 #include "L1Trigger/TallinnL1PFTaus/interface/TallinnL1PFTauQualityCut.h" // TallinnL1PFTauQualityCut
 #include "DataFormats/TallinnL1PFTaus/interface/TallinnL1PFTau.h"         // l1t::TallinnL1PFTau
 #include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidate.h"       // l1t::PFCandidate
@@ -28,6 +29,7 @@ class TallinnL1PFTauBuilder
   void setL1PFTauSeed(const l1t::PFCandidateRef& l1PFCand_seed);
   void setL1PFTauSeed(const reco::PFJetRef& l1PFJet_seed);
   void addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands);
+  void setRho(double rho);
   void buildL1PFTau();
 
   l1t::TallinnL1PFTau getL1PFTau() const { return l1PFTau_; }
@@ -59,6 +61,11 @@ class TallinnL1PFTauBuilder
   std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_dzCut_enabled_primary_;
   std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_dzCut_enabled_pileup_;
 
+  std::string inputFileName_rhoCorr_;
+  TFile* inputFile_rhoCorr_;
+  LocalFileInPath histogramName_rhoCorr_;
+  TH1* histogram_rhoCorr_;
+
   edm::ProductID l1PFCandProductID_;
   bool isPFCandSeeded_;
   l1t::PFCandidateRef l1PFCand_seed_;
@@ -69,6 +76,7 @@ class TallinnL1PFTauBuilder
   double l1PFTauSeed_zVtx_;
   l1t::VertexRef primaryVertex_;
   l1t::TallinnL1PFTau l1PFTau_;
+  double rho_;
 
   reco::Particle::LorentzVector strip_p4_;
 
