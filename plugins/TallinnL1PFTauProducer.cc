@@ -102,8 +102,11 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
     }
   }
 
-  double rho = 0.;
-  
+  edm::Handle<float> rho;
+  if ( srcRho_.label() != "" ) 
+  {
+    evt.getByToken(tokenRho_, rho);
+  }
 
   if ( debug_ ) 
   {
@@ -174,7 +177,10 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
 	  tauBuilder_->setVertex(primaryVertex);
 	  tauBuilder_->setL1PFTauSeed(l1PFCand);
 	  tauBuilder_->addL1PFCandidates(selectedL1PFCands_signal_or_isolationQualityCuts);
-	  tauBuilder_->setRho(*rho);
+	  if ( srcRho_.label() != "" ) 
+	  {
+	    tauBuilder_->setRho(*rho);
+	  }
 	  tauBuilder_->buildL1PFTau();
 	  l1t::TallinnL1PFTau l1PFTau = tauBuilder_->getL1PFTau();
 	  if ( l1PFTau.pt() > 1. ) l1PFTauCollection_uncleaned.push_back(l1PFTau);
@@ -198,7 +204,10 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
 	tauBuilder_->setVertex(primaryVertex);
 	tauBuilder_->setL1PFTauSeed(l1PFJet);
 	tauBuilder_->addL1PFCandidates(selectedL1PFCands_signal_or_isolationQualityCuts);
-	tauBuilder_->setRho(*rho);
+	if ( srcRho_.label() != "" ) 
+	{
+	  tauBuilder_->setRho(*rho);
+	}
 	tauBuilder_->buildL1PFTau();
 	l1t::TallinnL1PFTau l1PFTau = tauBuilder_->getL1PFTau();
 	if ( l1PFTau.pt() > 1. ) l1PFTauCollection_uncleaned.push_back(l1PFTau);

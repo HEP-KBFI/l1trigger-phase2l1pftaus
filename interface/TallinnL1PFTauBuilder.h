@@ -14,6 +14,8 @@
 #include "DataFormats/L1TVertex/interface/Vertex.h"                       // l1t::VertexRef
 
 #include <TFormula.h> // TFormula
+#include <TFile.h>    // TFile
+#include <TH1.h>      // TH1
 
 #include <vector>
 
@@ -63,7 +65,7 @@ class TallinnL1PFTauBuilder
 
   std::string inputFileName_rhoCorr_;
   TFile* inputFile_rhoCorr_;
-  LocalFileInPath histogramName_rhoCorr_;
+  std::string histogramName_rhoCorr_;
   TH1* histogram_rhoCorr_;
 
   edm::ProductID l1PFCandProductID_;
@@ -102,6 +104,7 @@ class TallinnL1PFTauBuilder
   std::vector<l1t::PFCandidateRef> sumMuons_;
 
   double sumChargedIsoPileup_;
+  double rhoCorr_;
 
   bool debug_;
 };

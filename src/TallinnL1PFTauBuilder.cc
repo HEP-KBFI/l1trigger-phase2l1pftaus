@@ -12,6 +12,7 @@
 
 #include <string>    // std::string 
 #include <algorithm> // std::max(), std::sort()
+#include <cmath>     // std::fabs
 
 int TallinnL1PFTauBuilder::signalConeSizeFormula_instance_counter_ = 0;
 
@@ -62,7 +63,8 @@ TallinnL1PFTauBuilder::TallinnL1PFTauBuilder(const edm::ParameterSet& cfg)
 
   if ( inputFileName_rhoCorr_ != "" && histogramName_rhoCorr_ != "" ) 
   {
-    inputFile_rhoCorr_ = openFile(inputFileName_rhoCorr_);
+    LocalFileInPath inputFileName_rhoCorr_fip(inputFileName_rhoCorr_);
+    inputFile_rhoCorr_ = openFile(inputFileName_rhoCorr_fip);
     TH1* histogram_rhoCorr_temp = loadTH1(inputFile_rhoCorr_, histogramName_rhoCorr_);
     std::string histogramName_rhoCorr = Form("%s_cloned", histogram_rhoCorr_->GetName());
     histogram_rhoCorr_ = (TH1*)histogram_rhoCorr_temp->Clone(histogramName_rhoCorr.data());
@@ -73,7 +75,7 @@ TallinnL1PFTauBuilder::TallinnL1PFTauBuilder(const edm::ParameterSet& cfg)
 
 TallinnL1PFTauBuilder::~TallinnL1PFTauBuilder()
 {
-  //delete inputFile_rhoCorr_;
+  delete histogram_rhoCorr_;
 }
 
 void TallinnL1PFTauBuilder::reset()
@@ -91,6 +93,7 @@ void TallinnL1PFTauBuilder::reset()
   l1PFTauSeed_zVtx_ = 0.;
   primaryVertex_ = l1t::VertexRef();
   l1PFTau_ = l1t::TallinnL1PFTau();
+  rho_ = 0.;
 
   strip_p4_ = reco::Particle::LorentzVector(0.,0.,0.,0.);
 
@@ -116,7 +119,6 @@ void TallinnL1PFTauBuilder::reset()
   sumMuons_.clear();
 
   sumChargedIsoPileup_ = 0.;
-
   rhoCorr_ = 0.;
 }
 
@@ -332,20 +334,6 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidate
       sumChargedIsoPileup_ += l1PFCand->pt();
     }
   }
-
-  double rhoCorr = 0.;
-    if ( rcRho_.label() != "" ) 
-    {
-      rhoCorr = *rho;
-      int idxBin = histogram_rhoCorr_->FindBin(TMath::Abs(l1Tau->eta()));
-      if ( !(idxBin >= 1 && idxBin <= histogram_rhoCorr_->GetNbins()) )
-      {
-        std::cerr << "Warning in <TallinnL1PFTauIsolationAnalyzer::analyze>:" 
-	  	  << " Failed to compute rho correction for abs(eta) = " << l1Tau->eta() << " --> skipping event !!" << std::endl;
-        return;
-      }
-      rhoCorr *= histogram_rhoCorr_->GetBinContent(idxBin);
-    }
 }
 
 void TallinnL1PFTauBuilder::setRho(double rho)
@@ -462,12 +450,12 @@ void TallinnL1PFTauBuilder::buildL1PFTau()
 
   if ( histogram_rhoCorr_ )
   {
-    double rhoCorr = rho_;
-    int idxBin = histogram_rhoCorr_->FindBin(TMath::Abs(l1Tau->eta()));
-    if ( idxBin >= 1 && idxBin <= histogram_rhoCorr_->GetNbins() )
+    rhoCorr_ = rho_;
+    int idxBin = histogram_rhoCorr_->FindBin(std::fabs(l1PFTau_.eta()));
+    if ( idxBin >= 1 && idxBin <= histogram_rhoCorr_->GetNbinsX() )
     {
-      rhoCorr *= histogram_rhoCorr_->GetBinContent(idxBin);
-      l1PFTau_.rhoCorr_ = rhoCorr;
+      rhoCorr_ *= histogram_rhoCorr_->GetBinContent(idxBin);
+      l1PFTau_.rhoCorr_ = rhoCorr_;
     } 
     else
     {
