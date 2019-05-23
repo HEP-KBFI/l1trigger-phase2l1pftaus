@@ -94,6 +94,26 @@ process.load("L1Trigger.Phase2L1ParticleFlow.l1ParticleFlow_cff")
 process.productionSequence += process.l1ParticleFlow
 
 process.load("L1Trigger.Phase2L1ParticleFlow.l1pfJetMet_cff")
+process.ak4PFL1PF.doRhoFastjet = cms.bool(True)
+process.l1pfNeutralCandidatesPF = cms.EDFilter("L1TPFCandSelector",
+    src = cms.InputTag('l1pfCandidates:PF'),                                      
+    cut = cms.string("id = l1t::PFCandidate::Photon")                                                  
+)
+process.productionSequence += process.l1pfNeutralCandidatesPF
+process.ak4PFL1NeutralsPF = process.ak4PFL1PF.clone(
+    src = cms.InputTag('l1pfNeutralCandidatesPF')
+)
+process.productionSequence += process.ak4PFL1NeutralsPF
+process.ak4PFL1Puppi.doRhoFastjet = cms.bool(True)
+process.l1pfNeutralCandidatesPuppi = cms.EDFilter("L1TPFCandSelector",
+    src = cms.InputTag('l1pfCandidates:Puppi'),                                      
+    cut = cms.string("id = l1t::PFCandidate::Photon")                                                  
+)
+process.productionSequence += process.l1pfNeutralCandidatesPuppi
+process.ak4PFL1NeutralsPuppi = process.ak4PFL1Puppi.clone(
+    src = cms.InputTag('l1pfNeutralCandidatesPuppi')
+)
+process.productionSequence += process.ak4PFL1NeutralsPF
 process.productionSequence += process.l1PFJets
 
 ############################################################
@@ -190,6 +210,12 @@ process.out = cms.OutputModule("PoolOutputModule",
         'keep *_electronGsfTracks_*_*',
         'keep *_offlineSlimmedPrimaryVertices_*_*',                           
         'keep *_L1PFTauProducer_*_*',
+        'keep *_ak4PFL1PF_*_*',
+        'keep *_ak4PFL1PFCorrected_*_*',
+        'keep *_ak4PFL1NeutralsPuppi_rho_*',                            
+        'keep *_ak4PFL1Puppi_*_*',
+        'keep *_ak4PFL1PuppiCorrected_*_*',
+        'keep *_ak4PFL1NeutralsPuppi_rho_*',                                
     )                           
 )
 process.outpath = cms.EndPath(process.out)
@@ -214,6 +240,5 @@ process = customiseEarlyDelete(process)
 
 dump_file = open('dump.py','w')
 dump_file.write(process.dumpPython())
-
 
 process.options.numberOfThreads = cms.untracked.uint32(2)
