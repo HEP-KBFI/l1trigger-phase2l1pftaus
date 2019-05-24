@@ -9,8 +9,8 @@
 #include "DataFormats/TallinnL1PFTaus/interface/TallinnL1PFTau.h"         // l1t::TallinnL1PFTau
 #include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidate.h"       // l1t::PFCandidate
 #include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidateFwd.h"    // l1t::PFCandidateCollection, l1t::PFCandidateRef
-#include "DataFormats/JetReco/interface/PFJet.h"                          // reco::PFJet
-#include "DataFormats/JetReco/interface/PFJetCollection.h"                // reco::PFJetCollection, reco::PFJetRef
+#include "DataFormats/Phase2L1ParticleFlow/interface/PFJet.h"             // l1t::PFJet
+#include "DataFormats/Phase2L1ParticleFlow/interface/PFJetFwd.h"          // l1t::PFJetCollection, l1t::PFJetRef
 #include "DataFormats/L1TVertex/interface/Vertex.h"                       // l1t::VertexRef
 
 #include <TFormula.h> // TFormula
@@ -29,7 +29,7 @@ class TallinnL1PFTauBuilder
   void setL1PFCandProductID(const edm::ProductID& l1PFCandProductID);
   void setVertex(const l1t::VertexRef& primaryVertex);
   void setL1PFTauSeed(const l1t::PFCandidateRef& l1PFCand_seed);
-  void setL1PFTauSeed(const reco::PFJetRef& l1PFJet_seed);
+  void setL1PFTauSeed(const l1t::PFJetRef& l1PFJet_seed);
   void addL1PFCandidates(const std::vector<l1t::PFCandidateRef>& l1PFCands);
   void setRho(double rho);
   void buildL1PFTau();
@@ -72,7 +72,7 @@ class TallinnL1PFTauBuilder
   bool isPFCandSeeded_;
   l1t::PFCandidateRef l1PFCand_seed_;
   bool isPFJetSeeded_;
-  reco::PFJetRef l1PFJet_seed_;
+  l1t::PFJetRef l1PFJet_seed_;
   double l1PFTauSeed_eta_;
   double l1PFTauSeed_phi_;
   double l1PFTauSeed_zVtx_;

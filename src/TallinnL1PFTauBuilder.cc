@@ -1,12 +1,10 @@
 #include "L1Trigger/TallinnL1PFTaus/interface/TallinnL1PFTauBuilder.h"
 
-#include "FWCore/Utilities/interface/Exception.h"                         // cms::Exception
+#include "FWCore/Utilities/interface/Exception.h"                // cms::Exception
 
-#include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"      // reco::PFCandidate
-#include "DataFormats/ParticleFlowCandidate/interface/PFCandidateFwd.h"   // reco::PFCandidatePtr
-#include "DataFormats/Math/interface/deltaR.h"                            // reco::deltaR
+#include "DataFormats/Math/interface/deltaR.h"                   // reco::deltaR
 
-#include "L1Trigger/TallinnL1PFTaus/interface/lutAuxFunctions.h"          // openFile(), loadTH1()
+#include "L1Trigger/TallinnL1PFTaus/interface/lutAuxFunctions.h" // openFile(), loadTH1()
 
 #include <TString.h> // TString, Form()
 
@@ -87,7 +85,7 @@ void TallinnL1PFTauBuilder::reset()
   isPFCandSeeded_ = false;
   l1PFCand_seed_ = l1t::PFCandidateRef();
   isPFJetSeeded_ = false;
-  l1PFJet_seed_ = reco::PFJetRef();
+  l1PFJet_seed_ = l1t::PFJetRef();
   l1PFTauSeed_eta_ = 0.;
   l1PFTauSeed_phi_ = 0.;
   l1PFTauSeed_zVtx_ = 0.;
@@ -151,7 +149,7 @@ void TallinnL1PFTauBuilder::setL1PFTauSeed(const l1t::PFCandidateRef& l1PFCand_s
   }
 }
  
-void TallinnL1PFTauBuilder::setL1PFTauSeed(const reco::PFJetRef& l1PFJet_seed)
+void TallinnL1PFTauBuilder::setL1PFTauSeed(const l1t::PFJetRef& l1PFJet_seed)
 {
   if ( debug_ )
   {
@@ -165,10 +163,10 @@ void TallinnL1PFTauBuilder::setL1PFTauSeed(const reco::PFJetRef& l1PFJet_seed)
   float l1PFTauSeed_zVtx = 0.;
   bool l1PFTauSeed_hasVtx = false;
   float max_chargedPFCand_pt = -1.;
-  std::vector<const reco::Candidate*> constituents = l1PFJet_seed->getJetConstituentsQuick();
-  for ( auto constituent : constituents ) 
+  size_t numConstituents = l1PFJet_seed->numberOfDaughters();
+  for ( size_t idxConstituent = 0; idxConstituent < numConstituents; ++idxConstituent )
   {
-    const l1t::PFCandidate* l1PFCand = dynamic_cast<const l1t::PFCandidate*>(constituent);
+    const l1t::PFCandidate* l1PFCand = dynamic_cast<const l1t::PFCandidate*>(l1PFJet_seed->daughter(idxConstituent));
     if ( !l1PFCand )
     {
       throw cms::Exception("TallinnL1PFTauBuilder")

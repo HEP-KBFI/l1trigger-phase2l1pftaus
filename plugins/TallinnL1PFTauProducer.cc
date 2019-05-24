@@ -37,7 +37,7 @@ TallinnL1PFTauProducer::TallinnL1PFTauProducer(const edm::ParameterSet& cfg)
   srcL1PFJets_ = cfg.getParameter<edm::InputTag>("srcL1PFJets");
   if ( usePFJetSeeds_ )
   {
-    tokenL1PFJets_ = consumes<reco::PFJetCollection>(srcL1PFJets_);
+    tokenL1PFJets_ = consumes<l1t::PFJetCollection>(srcL1PFJets_);
   }
   srcL1Vertices_ = cfg.getParameter<edm::InputTag>("srcL1Vertices");
   if ( srcL1Vertices_.label() != "" ) 
@@ -47,7 +47,7 @@ TallinnL1PFTauProducer::TallinnL1PFTauProducer(const edm::ParameterSet& cfg)
   srcRho_ = cfg.getParameter<edm::InputTag>("srcRho");
   if ( srcRho_.label() != "" ) 
   {
-    tokenRho_ = consumes<float>(srcRho_);
+    tokenRho_ = consumes<double>(srcRho_);
   }
 
   deltaR2_cleaning_ = deltaR_cleaning_*deltaR_cleaning_;
@@ -102,7 +102,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
     }
   }
 
-  edm::Handle<float> rho;
+  edm::Handle<double> rho;
   if ( srcRho_.label() != "" ) 
   {
     evt.getByToken(tokenRho_, rho);
@@ -191,12 +191,12 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
 
   if ( usePFJetSeeds_ )
   {
-    edm::Handle<reco::PFJetCollection> l1PFJets;
+    edm::Handle<l1t::PFJetCollection> l1PFJets;
     evt.getByToken(tokenL1PFJets_, l1PFJets);
 
     size_t numL1PFJets = l1PFJets->size();    
     for ( size_t idxL1PFJet = 0; idxL1PFJet < numL1PFJets; ++idxL1PFJet ) {
-      reco::PFJetRef l1PFJet(l1PFJets, idxL1PFJet);
+      l1t::PFJetRef l1PFJet(l1PFJets, idxL1PFJet);
       if ( l1PFJet->pt() > min_seedPFJet_pt_ && std::fabs(l1PFJet->eta()) < max_seedPFJet_eta_ )
       {
 	tauBuilder_->reset();

@@ -13,8 +13,8 @@
 #include "DataFormats/TallinnL1PFTaus/interface/TallinnL1PFTauFwd.h"      // l1t::TallinnL1PFTauCollection
 #include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidate.h"       // l1t::PFCandidate
 #include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidateFwd.h"    // l1t::PFCandidateCollection, l1t::PFCandidateRef
-#include "DataFormats/JetReco/interface/PFJet.h"                          // reco::PFJet
-#include "DataFormats/JetReco/interface/PFJetCollection.h"                // reco::PFJetCollection, reco::PFJetRef
+#include "DataFormats/Phase2L1ParticleFlow/interface/PFJet.h"             // l1t::PFJet
+#include "DataFormats/Phase2L1ParticleFlow/interface/PFJetFwd.h"          // l1t::PFJetCollection, l1t::PFJetRef
 #include "DataFormats/L1TVertex/interface/Vertex.h"                       // l1t::Vertex, l1t::VertexCollection
 
 #include <string>
@@ -36,11 +36,11 @@ class TallinnL1PFTauProducer : public edm::EDProducer
   edm::InputTag srcL1PFCands_;
   edm::EDGetTokenT<l1t::PFCandidateCollection> tokenL1PFCands_;
   edm::InputTag srcL1PFJets_;
-  edm::EDGetTokenT<reco::PFJetCollection> tokenL1PFJets_;
+  edm::EDGetTokenT<l1t::PFJetCollection> tokenL1PFJets_;
   edm::InputTag srcL1Vertices_;
   edm::EDGetTokenT<l1t::VertexCollection> tokenL1Vertices_;
   edm::InputTag srcRho_;
-  edm::EDGetTokenT<float> tokenRho_;
+  edm::EDGetTokenT<double> tokenRho_;
 
   std::vector<TallinnL1PFTauQualityCut> signalQualityCuts_dzCut_disabled_;
   std::vector<TallinnL1PFTauQualityCut> isolationQualityCuts_dzCut_disabled_;

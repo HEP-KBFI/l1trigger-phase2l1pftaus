@@ -22,7 +22,7 @@ process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(10)
+    input = cms.untracked.int32(100)
 )
 
 # Input source
@@ -97,27 +97,38 @@ process.load("L1Trigger.Phase2L1ParticleFlow.l1ParticleFlow_cff")
 process.productionSequence += process.l1ParticleFlow
 
 process.load("L1Trigger.Phase2L1ParticleFlow.l1pfJetMet_cff")
-process.ak4PFL1PF.doRhoFastjet = cms.bool(True)
+process.productionSequence += process.l1PFJets
+
+process.kt6L1PFJetsPF = process.ak4PFL1PF.clone(
+    jetAlgorithm = cms.string("Kt"),
+    rParam       = cms.double(0.6),
+    doRhoFastjet = cms.bool(True),
+    Rho_EtaMax   = cms.double(3.0)
+)
+process.productionSequence += process.kt6L1PFJetsPF
 process.l1pfNeutralCandidatesPF = cms.EDFilter("L1TPFCandSelector",
     src = cms.InputTag('l1pfCandidates:PF'),                                      
-    cut = cms.string("id = l1t::PFCandidate::Photon")                                                  
+    cut = cms.string("pdgId = 22"), # CV: cms.string("id = Photon") does not work (does not select any l1t::PFCandidates)
+    filter = cms.bool(False)                                           
 )
 process.productionSequence += process.l1pfNeutralCandidatesPF
-process.ak4PFL1NeutralsPF = process.ak4PFL1PF.clone(
+process.kt6L1PFJetsNeutralsPF = process.kt6L1PFJetsPF.clone(
     src = cms.InputTag('l1pfNeutralCandidatesPF')
-)
-process.productionSequence += process.ak4PFL1NeutralsPF
-process.ak4PFL1Puppi.doRhoFastjet = cms.bool(True)
-process.l1pfNeutralCandidatesPuppi = cms.EDFilter("L1TPFCandSelector",
+) 
+process.productionSequence += process.kt6L1PFJetsNeutralsPF
+
+process.kt6L1PFJetsPuppi = process.kt6L1PFJetsPF.clone(
+    src = cms.InputTag('l1pfCandidates:Puppi')
+)    
+process.productionSequence += process.kt6L1PFJetsPuppi
+process.l1pfNeutralCandidatesPuppi = process.l1pfNeutralCandidatesPF.clone(
     src = cms.InputTag('l1pfCandidates:Puppi'),                                      
-    cut = cms.string("id = l1t::PFCandidate::Photon")                                                  
 )
 process.productionSequence += process.l1pfNeutralCandidatesPuppi
-process.ak4PFL1NeutralsPuppi = process.ak4PFL1Puppi.clone(
+process.kt6L1PFJetsNeutralsPuppi = process.kt6L1PFJetsPuppi.clone(
     src = cms.InputTag('l1pfNeutralCandidatesPuppi')
-)
-process.productionSequence += process.ak4PFL1NeutralsPF
-process.productionSequence += process.l1PFJets
+) 
+process.productionSequence += process.kt6L1PFJetsNeutralsPuppi
 
 ############################################################
 # Generator-level (visible) hadronic taus
@@ -215,10 +226,12 @@ process.out = cms.OutputModule("PoolOutputModule",
         'keep *_L1PFTauProducer_*_*',
         'keep *_ak4PFL1PF_*_*',
         'keep *_ak4PFL1PFCorrected_*_*',
-        'keep *_ak4PFL1NeutralsPuppi_rho_*',                            
+        'keep *_kt6L1PFJetsPF_rho_*',                
+        'keep *_kt6L1PFJetsNeutralsPF_rho_*',                            
         'keep *_ak4PFL1Puppi_*_*',
         'keep *_ak4PFL1PuppiCorrected_*_*',
-        'keep *_ak4PFL1NeutralsPuppi_rho_*',                                
+        'keep *_kt6L1PFJetsPuppi_rho_*',                             
+        'keep *_kt6L1PFJetsNeutralsPuppi_rho_*',                                
     )                           
 )
 process.outpath = cms.EndPath(process.out)
