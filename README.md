@@ -23,6 +23,10 @@ cp /home/veelken/public/DataFormats/Phase2L1ParticleFlow/PFCandidate.h $CMSSW_BA
 
 cp /home/veelken/public/DataFormats/Phase2L1ParticleFlow/PFCandidateFwd.h $CMSSW_BASE/src/DataFormats/Phase2L1ParticleFlow/interface
 
+cp /home/veelken/public/DataFormats/Phase2L1ParticleFlow/PFJet.h $CMSSW_BASE/src/DataFormats/Phase2L1ParticleFlow/interface
+
+cp /home/veelken/public/DataFormats/Phase2L1ParticleFlow/PFJetFwd.h $CMSSW_BASE/src/DataFormats/Phase2L1ParticleFlow/interface
+
 cp /home/veelken/public/DataFormats/Phase2L1ParticleFlow/classes.h $CMSSW_BASE/src/DataFormats/Phase2L1ParticleFlow/src
 
 cp /home/veelken/public/DataFormats/Phase2L1ParticleFlow/classes_def.xml $CMSSW_BASE/src/DataFormats/Phase2L1ParticleFlow/src
