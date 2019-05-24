@@ -38,4 +38,3 @@ cmsRun test_TallinnL1PFTauProducer.py
 # To modify the DataFormats 
 
 cd DataFormats/TallinnL1PFTaus
-
