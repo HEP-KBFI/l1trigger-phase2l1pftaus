@@ -20,10 +20,16 @@ class TallinnL1PFTauQualityCut
   /// returns true (false) if PFCandidate passes (fails) quality cuts
   bool operator()(const l1t::PFCandidate& pfCand, float_t primaryVertex_z) const;
 
+  /// accessor functions
+  l1t::PFCandidate::Kind pfCandType() const; 
+  enum { kDisabled, kEnabled_primary, kEnabled_pileup };
+  int dzCut() const;
+  float_t min_pt() const;
+  float_t max_dz() const;
+
  private:
   l1t::PFCandidate::Kind pfCandType_;
 
-  enum { kDisabled, kEnabled_primary, kEnabled_pileup };
   int dzCut_; // flag to invert dz cut in order to compute charged isolation from pileup for delta-beta corrections
 
   float_t min_pt_;

@@ -60,6 +60,26 @@ bool TallinnL1PFTauQualityCut::operator()(const l1t::PFCandidate& pfCand, float_
   return true;
 }
 
+l1t::PFCandidate::Kind TallinnL1PFTauQualityCut::pfCandType() const
+{
+  return pfCandType_;
+}
+
+int TallinnL1PFTauQualityCut::dzCut() const
+{
+  return dzCut_;
+}
+ 
+float_t TallinnL1PFTauQualityCut::min_pt() const
+{
+  return min_pt_;
+}
+
+float_t TallinnL1PFTauQualityCut::max_dz() const
+{
+  return max_dz_;
+}
+
 TallinnL1PFTauQualityCut readL1PFTauQualityCut(const edm::ParameterSet& cfg, const std::string& pfCandType, const std::string& dzCut, bool debug)
 {
   edm::ParameterSet cfg_pfCandType = cfg.getParameter<edm::ParameterSet>(pfCandType);
