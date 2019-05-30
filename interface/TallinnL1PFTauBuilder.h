@@ -67,6 +67,7 @@ class TallinnL1PFTauBuilder
   TFile* inputFile_rhoCorr_;
   std::string histogramName_rhoCorr_;
   TH1* histogram_rhoCorr_;
+  double histogram_rhoCorr_yMax_;
 
   edm::ProductID l1PFCandProductID_;
   bool isPFCandSeeded_;

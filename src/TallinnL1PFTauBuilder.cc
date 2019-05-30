@@ -7,6 +7,7 @@
 #include "L1Trigger/TallinnL1PFTaus/interface/lutAuxFunctions.h" // openFile(), loadTH1()
 
 #include <TString.h> // TString, Form()
+#include <TMath.h>   // TMath::Pi()
 
 #include <string>    // std::string 
 #include <algorithm> // std::max(), std::sort()
@@ -26,6 +27,7 @@ TallinnL1PFTauBuilder::TallinnL1PFTauBuilder(const edm::ParameterSet& cfg)
   , inputFile_rhoCorr_(nullptr)
   , histogramName_rhoCorr_(cfg.getParameter<std::string>("histogramName_rhoCorr"))
   , histogram_rhoCorr_(nullptr)  
+  , histogram_rhoCorr_yMax_(-1.)
   , debug_(cfg.getUntrackedParameter<bool>("debug", false))
 {
   std::string signalConeSizeFormulaName = Form("signalConeSizeFormula%i", signalConeSizeFormula_instance_counter_);
@@ -66,6 +68,15 @@ TallinnL1PFTauBuilder::TallinnL1PFTauBuilder(const edm::ParameterSet& cfg)
     TH1* histogram_rhoCorr_temp = loadTH1(inputFile_rhoCorr_, histogramName_rhoCorr_);
     std::string histogramName_rhoCorr = Form("%s_cloned", histogram_rhoCorr_->GetName());
     histogram_rhoCorr_ = (TH1*)histogram_rhoCorr_temp->Clone(histogramName_rhoCorr.data());
+    int numBins = histogram_rhoCorr_->GetNbinsX();
+    for ( int idxBin = 1; idxBin <= numBins; ++idxBin )
+    {
+      double binContent = histogram_rhoCorr_->GetBinContent(idxBin);
+      if ( binContent > histogram_rhoCorr_yMax_ ) 
+      {
+	histogram_rhoCorr_yMax_ = binContent;
+      }
+    }
     delete inputFile_rhoCorr_;
     inputFile_rhoCorr_ = nullptr;
   }
@@ -446,13 +457,14 @@ void TallinnL1PFTauBuilder::buildL1PFTau()
   l1PFTau_.sumCombinedIso_ = sumChargedIso + weightNeutralIso*(sumNeutralIso - offsetNeutralIso);
   l1PFTau_.sumChargedIsoPileup_ = sumChargedIsoPileup_;
 
-  if ( histogram_rhoCorr_ )
+  if ( histogram_rhoCorr_ && histogram_rhoCorr_yMax_ > 0. ) 
   {
-    rhoCorr_ = rho_;
+    const double isolationConeArea = TMath::Pi()*0.4*0.4;
+    rhoCorr_ = isolationConeArea*rho_;
     int idxBin = histogram_rhoCorr_->FindBin(std::fabs(l1PFTau_.eta()));
     if ( idxBin >= 1 && idxBin <= histogram_rhoCorr_->GetNbinsX() )
     {
-      rhoCorr_ *= histogram_rhoCorr_->GetBinContent(idxBin);
+      rhoCorr_ *= histogram_rhoCorr_->GetBinContent(idxBin)/histogram_rhoCorr_yMax_;
       l1PFTau_.rhoCorr_ = rhoCorr_;
     } 
     else
