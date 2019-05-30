@@ -15,7 +15,8 @@
 #include "DataFormats/Phase2L1ParticleFlow/interface/PFCandidateFwd.h"    // l1t::PFCandidateCollection, l1t::PFCandidateRef
 #include "DataFormats/Phase2L1ParticleFlow/interface/PFJet.h"             // l1t::PFJet
 #include "DataFormats/Phase2L1ParticleFlow/interface/PFJetFwd.h"          // l1t::PFJetCollection, l1t::PFJetRef
-#include "DataFormats/L1TVertex/interface/Vertex.h"                       // l1t::Vertex, l1t::VertexCollection
+#include "DataFormats/L1TVertex/interface/Vertex.h"                       // l1t::Vertex
+#include "DataFormats/L1TVertex/interface/VertexFwd.h"                    // l1t::VertexCollection
 
 #include <string>
 #include <vector>

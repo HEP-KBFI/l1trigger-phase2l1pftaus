@@ -137,7 +137,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
 
   // sort PFCandidate collection by decreasing pT
   std::sort(selectedL1PFCands_signalQualityCuts.begin(), selectedL1PFCands_signalQualityCuts.end(), isHigherPt_pfCandRef);
-  std::sort(selectedL1PFCands_signal_or_isolationQualityCuts.begin(),  selectedL1PFCands_signal_or_isolationQualityCuts.end(),  isHigherPt_pfCandRef);
+  std::sort(selectedL1PFCands_signal_or_isolationQualityCuts.begin(), selectedL1PFCands_signal_or_isolationQualityCuts.end(), isHigherPt_pfCandRef);
 
   if ( debug_ ) 
   {
