@@ -209,6 +209,7 @@ process.out = cms.OutputModule("PoolOutputModule",
         'keep *_l1pfCandidates_Puppi_*',
         'keep *_l1pfProducer*_z0_*',
         'keep *_pfTracksFromL1Tracks*_*_*',
+        'keep *_pfClustersFrom*_*_*',
         'keep *_TTTracksFromTracklet_*_*',
         'keep *_VertexProducer_*_*',                                
         'keep *_slimmedTaus_*_*',
@@ -231,7 +232,8 @@ process.out = cms.OutputModule("PoolOutputModule",
         'keep *_ak4PFL1Puppi_*_*',
         'keep *_ak4PFL1PuppiCorrected_*_*',
         'keep *_kt6L1PFJetsPuppi_rho_*',                             
-        'keep *_kt6L1PFJetsNeutralsPuppi_rho_*',                                
+        'keep *_kt6L1PFJetsNeutralsPuppi_rho_*',
+        'keep *_slimmedAddPileupInfo_*_*',                
     )                           
 )
 process.outpath = cms.EndPath(process.out)
