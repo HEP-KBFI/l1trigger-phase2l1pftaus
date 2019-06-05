@@ -154,7 +154,7 @@ void TallinnL1PFTauProducer::produce(edm::Event& evt, const edm::EventSetup& es)
   {
     for ( auto l1PFCand : selectedL1PFCands_signalQualityCuts ) 
     {
-      if ( l1PFCand->charge() != 0 && l1PFCand->pt() > min_seedChargedPFCand_pt_ && fabs(l1PFCand->eta()) < max_seedChargedPFCand_eta_ )
+      if ( l1PFCand->charge() != 0 && l1PFCand->pt() > min_seedChargedPFCand_pt_ && std::fabs(l1PFCand->eta()) < max_seedChargedPFCand_eta_ )
       {
         bool isFromPrimaryVertex = false;
         if ( primaryVertex.get() ) 
