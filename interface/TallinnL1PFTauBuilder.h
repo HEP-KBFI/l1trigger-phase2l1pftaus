@@ -77,6 +77,7 @@ class TallinnL1PFTauBuilder
   double l1PFTauSeed_eta_;
   double l1PFTauSeed_phi_;
   double l1PFTauSeed_zVtx_;
+  double sumAllL1PFCandidates_pt_;
   l1t::VertexRef primaryVertex_;
   l1t::TallinnL1PFTau l1PFTau_;
   double rho_;
@@ -90,6 +91,10 @@ class TallinnL1PFTauBuilder
   std::vector<l1t::PFCandidateRef> signalPhotons_;
   std::vector<l1t::PFCandidateRef> signalMuons_;
   
+  std::vector<l1t::PFCandidateRef> stripAllL1PFCandidates_;
+  std::vector<l1t::PFCandidateRef> stripElectrons_;
+  std::vector<l1t::PFCandidateRef> stripPhotons_;
+
   std::vector<l1t::PFCandidateRef> isoAllL1PFCandidates_;
   std::vector<l1t::PFCandidateRef> isoChargedHadrons_;
   std::vector<l1t::PFCandidateRef> isoElectrons_;

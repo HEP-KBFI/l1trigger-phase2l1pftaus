@@ -100,6 +100,7 @@ void TallinnL1PFTauBuilder::reset()
   l1PFTauSeed_eta_ = 0.;
   l1PFTauSeed_phi_ = 0.;
   l1PFTauSeed_zVtx_ = 0.;
+  sumAllL1PFCandidates_pt_ = 0.;
   primaryVertex_ = l1t::VertexRef();
   l1PFTau_ = l1t::TallinnL1PFTau();
   rho_ = 0.;
@@ -113,6 +114,10 @@ void TallinnL1PFTauBuilder::reset()
   signalPhotons_.clear();
   signalMuons_.clear();
   
+  stripAllL1PFCandidates_.clear();
+  stripElectrons_.clear();
+  stripPhotons_.clear();
+
   isoAllL1PFCandidates_.clear();
   isoChargedHadrons_.clear();
   isoElectrons_.clear();
@@ -245,12 +250,11 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidate
     }
   }
 
-  double sumAllL1PFCandidates_pt = 0.;
   for ( auto l1PFCand : sumAllL1PFCandidates_ )
   {
-    sumAllL1PFCandidates_pt += l1PFCand->pt();
+    sumAllL1PFCandidates_pt_ += l1PFCand->pt();
   }
-  signalConeSize_ = signalConeSizeFormula_->Eval(sumAllL1PFCandidates_pt);
+  signalConeSize_ = signalConeSizeFormula_->Eval(sumAllL1PFCandidates_pt_);
   if ( signalConeSize_ < min_signalConeSize_ ) signalConeSize_ = min_signalConeSize_;
   if ( signalConeSize_ > max_signalConeSize_ ) signalConeSize_ = max_signalConeSize_;
   signalConeSize2_ = signalConeSize_*signalConeSize_;
@@ -263,11 +267,20 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidate
     }
 
     bool isSignalPFCand = false;
+    bool isStripPFCand = false;
     bool isElectron_or_Photon = l1PFCand->id() == l1t::PFCandidate::Electron || l1PFCand->id() == l1t::PFCandidate::Photon;
     bool isChargedHadron = l1PFCand->id() == l1t::PFCandidate::ChargedHadron;
-    if ( (isWithinSignalCone(*l1PFCand) || (useStrips_ && isElectron_or_Photon && isWithinStrip(*l1PFCand))) && !(isChargedHadron && signalChargedHadrons_.size() > 3) ) 
+    if ( isWithinSignalCone(*l1PFCand) && !(isChargedHadron && signalChargedHadrons_.size() > 3) ) 
     { 
       isSignalPFCand = true;
+    }
+    if ( isElectron_or_Photon && isWithinStrip(*l1PFCand) ) 
+    { 
+      if ( useStrips_ ) 
+      {
+	isSignalPFCand = true;
+      }
+      isStripPFCand = true;
     }
     bool passesSignalQualityCuts = isSelected(signalQualityCuts_dzCut_enabled_primary_, *l1PFCand, l1PFTauSeed_zVtx_);
     if ( isSignalPFCand && passesSignalQualityCuts )
@@ -280,7 +293,6 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidate
       else if ( l1PFCand->id() == l1t::PFCandidate::Electron ) 
       {
 	signalElectrons_.push_back(l1PFCand);
-	strip_p4_ += l1PFCand->p4();
       }
       else if ( l1PFCand->id() == l1t::PFCandidate::NeutralHadron ) 
       {
@@ -289,13 +301,27 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidate
       else if ( l1PFCand->id() == l1t::PFCandidate::Photon ) 
       {
 	signalPhotons_.push_back(l1PFCand);
-	strip_p4_ += l1PFCand->p4();
       }
       else if ( l1PFCand->id() == l1t::PFCandidate::Muon ) 
       {
 	signalMuons_.push_back(l1PFCand);
       }
     } 
+    if ( isStripPFCand && passesSignalQualityCuts )
+    {
+      stripAllL1PFCandidates_.push_back(l1PFCand);  
+      if ( l1PFCand->id() == l1t::PFCandidate::Electron ) 
+      {
+	stripElectrons_.push_back(l1PFCand);
+	strip_p4_ += l1PFCand->p4();
+      }
+      else if ( l1PFCand->id() == l1t::PFCandidate::Photon ) 
+      {
+	stripPhotons_.push_back(l1PFCand);
+	strip_p4_ += l1PFCand->p4();
+      }
+      else assert(0);
+    }
     
     bool isIsolationPFCand = isWithinIsolationCone(*l1PFCand) && !isSignalPFCand;
     bool passesIsolationQualityCuts = isSelected(isolationQualityCuts_dzCut_enabled_primary_, *l1PFCand, l1PFTauSeed_zVtx_);
@@ -327,7 +353,7 @@ void TallinnL1PFTauBuilder::addL1PFCandidates(const std::vector<l1t::PFCandidate
     if ( debug_ )
     {
       std::cout << "dR = " << reco::deltaR(l1PFCand->eta(), l1PFCand->phi(), l1PFTauSeed_eta_, l1PFTauSeed_phi_) << ":"
-		<< " isSignalPFCand = " << isSignalPFCand << " (passesSignalQualityCuts = " << passesSignalQualityCuts << "),"
+		<< " isSignalPFCand = " << isSignalPFCand << ", isStripPFCand = " << isStripPFCand << " (passesSignalQualityCuts = " << passesSignalQualityCuts << "),"
 		<< " isIsolationPFCand = " << isIsolationPFCand << " (passesIsolationQualityCuts = " << passesIsolationQualityCuts << ")" << std::endl;
     }
   }
@@ -408,6 +434,10 @@ void TallinnL1PFTauBuilder::buildL1PFTau()
   l1PFTau_.signalPhotons_ = convertToRefVector(signalPhotons_);
   l1PFTau_.signalMuons_ = convertToRefVector(signalMuons_);
   
+  l1PFTau_.stripAllL1PFCandidates_ = convertToRefVector(stripAllL1PFCandidates_);
+  l1PFTau_.stripElectrons_ = convertToRefVector(stripElectrons_);
+  l1PFTau_.stripPhotons_ = convertToRefVector(stripPhotons_);
+
   l1PFTau_.isoAllL1PFCandidates_ = convertToRefVector(isoAllL1PFCandidates_);
   l1PFTau_.isoChargedHadrons_ = convertToRefVector(isoChargedHadrons_);
   l1PFTau_.isoElectrons_ = convertToRefVector(isoElectrons_);
@@ -436,6 +466,10 @@ void TallinnL1PFTauBuilder::buildL1PFTau()
   }
 
   l1PFTau_.strip_p4_ = strip_p4_;
+
+  l1PFTau_.sumAllL1PFCandidates_pt_ = sumAllL1PFCandidates_pt_;
+  l1PFTau_.signalConeSize_ = signalConeSize_;
+  l1PFTau_.isolationConeSize_ = isolationConeSize_;
 
   double sumChargedIso = 0.;
   double sumNeutralIso = 0.;
