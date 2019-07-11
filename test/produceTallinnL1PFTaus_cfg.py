@@ -1,3 +1,4 @@
+
 # Auto generated configuration file
 # using: 
 # Revision: 1.19 
@@ -8,7 +9,8 @@ import FWCore.ParameterSet.Config as cms
 from Configuration.StandardSequences.Eras import eras
 
 from Configuration.ProcessModifiers.convertHGCalDigisSim_cff import convertHGCalDigisSim
-process = cms.Process('Produce',eras.Phase2_trigger,convertHGCalDigisSim)
+#process = cms.Process('Produce',eras.Phase2_trigger,convertHGCalDigisSim)
+process = cms.Process('Produce',eras.Phase2C4_trigger)
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
@@ -16,7 +18,8 @@ process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
 process.load('FWCore.MessageService.MessageLogger_cfi')
 process.load('Configuration.EventContent.EventContent_cff')
 process.load('SimGeneral.MixingModule.mixNoPU_cfi')
-process.load('Configuration.Geometry.GeometryExtended2023D17Reco_cff')
+#process.load('Configuration.Geometry.GeometryExtended2023D17Reco_cff')
+process.load('Configuration.Geometry.GeometryExtended2023D35Reco_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
@@ -41,12 +44,17 @@ process.source = cms.Source("PoolSource",
         #'/store/mc/PhaseIIMTDTDRAutumn18DR/VBFHToTauTau_M125_14TeV_powheg_pythia8_correctedGridpack/FEVT/PU200_103X_upgrade2023_realistic_v2-v1/120000/5AB0C82F-3846-4D45-A27F-A356DEB6C5DE.root',
     ),
     inputCommands = cms.untracked.vstring("keep *", 
-        "drop l1tHGCalTowerMapBXVector_hgcalTriggerPrimitiveDigiProducer_towerMap_HLT",
+        ##"drop l1tHGCalTowerMapBXVector_hgcalTriggerPrimitiveDigiProducer_towerMap_HLT",
         "drop l1tEMTFHit2016Extras_simEmtfDigis_CSC_HLT",
         "drop l1tEMTFHit2016Extras_simEmtfDigis_RPC_HLT",
         "drop l1tEMTFHit2016s_simEmtfDigis__HLT",
         "drop l1tEMTFTrack2016Extras_simEmtfDigis__HLT",
-        "drop l1tEMTFTrack2016s_simEmtfDigis__HLT"
+        "drop l1tEMTFTrack2016s_simEmtfDigis__HLT",
+        'drop l1tEMTFHit2016Extras_simEmtfDigis_CSC_HLT',
+        'drop l1tEMTFHit2016Extras_simEmtfDigis_RPC_HLT',
+        'drop l1tEMTFHit2016s_simEmtfDigis__HLT',
+        'drop l1tEMTFTrack2016Extras_simEmtfDigis__HLT',
+        'drop l1tEMTFTrack2016s_simEmtfDigis__HLT',
     ),
     #skipEvents = cms.untracked.uint32(80),
     #eventsToProcess = cms.untracked.VEventRange(
@@ -67,7 +75,9 @@ process.configurationMetadata = cms.untracked.PSet(
 
 # Other statements
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, '100X_upgrade2023_realistic_v1', '')
+##process.GlobalTag = GlobalTag(process.GlobalTag, '100X_upgrade2023_realistic_v1', '')
+##process.GlobalTag = GlobalTag(process.GlobalTag, '103X_upgrade2023_realistic_v2', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic', '')
 
 # Sequence, Path and EndPath definitions
 process.productionSequence = cms.Sequence()
@@ -198,8 +208,6 @@ process.production_step = cms.Path(process.productionSequence)
 
 process.out = cms.OutputModule("PoolOutputModule",
     fileName = cms.untracked.string("NTuple_TallinnL1PFTauProducer.root"),                           
-    #fileName = cms.untracked.string("NTuple_TallinnL1PFTauProducer_2019May13.root"),
-    #fileName = cms.untracked.string("NTuple_TallinnL1PFTauProducer_DEBUG.root"),
     SelectEvents = cms.untracked.PSet(
         SelectEvents = cms.vstring('production_step')
     ),
@@ -233,7 +241,7 @@ process.out = cms.OutputModule("PoolOutputModule",
         'keep *_ak4PFL1PuppiCorrected_*_*',
         'keep *_kt6L1PFJetsPuppi_rho_*',                             
         'keep *_kt6L1PFJetsNeutralsPuppi_rho_*',
-        'keep *_slimmedAddPileupInfo_*_*',                
+        'keep *_slimmedAddPileupInfo_*_*', 
     )                           
 )
 process.outpath = cms.EndPath(process.out)
