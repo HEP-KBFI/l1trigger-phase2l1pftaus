@@ -9,13 +9,11 @@ cmsenv
 
 git cms-init 
 
-git remote add cms-l1t-offline https://github.com/cms-l1t-offline/cmssw 
+git cms-checkout-topic -u p2l1pfp:L1PF_10_5_X_v3
 
-git fetch cms-l1t-offline phase2-l1t-integration-CMSSW_10_5_0_pre1 
+#git clone git@github.com:p2l1pfp/FastPUPPI.git -b 105X_v3
 
-git cms-merge-topic -u cms-l1t-offline:l1t-phase2-v2.17.15.1 
-
-git cms-addpkg L1Trigger/L1TCommon 
+git clone https://github.com/p2l1pfp/FastPUPPI -b 105X_v3
 
 cp /home/veelken/public/DataFormats/Phase2L1ParticleFlow/PFCandidate.h     $CMSSW_BASE/src/DataFormats/Phase2L1ParticleFlow/interface
 
